@@ -21,3 +21,8 @@ dependencyResolutionManagement {
 
 rootProject.name = "ya-money"
 include(":app")
+include(":feature:accounts")
+include(":feature:transactions")
+include(":feature:transactions")
+include(":core:ui")
+include(":core:systemdesign")
