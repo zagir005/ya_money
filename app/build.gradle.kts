@@ -36,6 +36,11 @@ android {
 }
 
 dependencies {
+    implementation(project(":core:systemdesign"))
+    implementation(project(":core:ui"))
+    implementation(project(":feature:transactions"))
+    implementation(project(":finance:api"))
+    implementation(project(":finance:impl"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -46,6 +51,7 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.decompose)
     implementation(libs.decompose.compose)
+    implementation(libs.metro.runtime)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

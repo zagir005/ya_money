@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.library)
+    alias(libs.plugins.metro)
 }
 
 android {
@@ -21,9 +22,9 @@ android {
 }
 
 dependencies {
-    implementation(libs.androidx.appcompat)
+    implementation(project(":finance:api"))
     implementation(libs.androidx.core.ktx)
-    implementation(libs.material)
+    implementation(libs.metro.runtime)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
