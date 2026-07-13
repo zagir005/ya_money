@@ -11,6 +11,9 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+}
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
@@ -26,3 +29,7 @@ include(":feature:transactions")
 include(":feature:transactions")
 include(":core:ui")
 include(":core:systemdesign")
+include(":core:domain")
+include(":core:data")
+include(":finance:transactions")
+include(":finance:accounts")
