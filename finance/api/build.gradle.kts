@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "com.zagirlek.ui"
+    namespace = "com.zagirlek.api"
     compileSdk {
         version = release(37)
     }
@@ -24,7 +24,6 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.core.ktx)
     implementation(libs.material)
-    implementation(libs.kotlinx.coroutines.core)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
