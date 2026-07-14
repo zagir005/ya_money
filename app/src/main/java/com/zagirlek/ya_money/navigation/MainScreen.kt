@@ -1,30 +1,33 @@
 package com.zagirlek.ya_money.navigation
 
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.automirrored.outlined.TrendingDown
 import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material3.Icon
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.annotation.StringRes
+import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.zagirlek.systemdesign.theme.YaMoneyDesign
 import com.zagirlek.ya_money.R
-import com.zagirlek.transactions.expenses.ExpensesScreen
+import com.zagirlek.ui.R as CoreUiR
+import com.zagirlek.accounts.AccountsScreen
+import com.zagirlek.transactions.TransactionsScreen
 
 @Composable
 fun MainScreen(component: MainComponent) {
@@ -33,6 +36,7 @@ fun MainScreen(component: MainComponent) {
     val dimensions = YaMoneyDesign.dimensions
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             MainNavigationBar(
                 selectedTab = selectedTab,
@@ -48,9 +52,11 @@ fun MainScreen(component: MainComponent) {
                 .padding(contentPadding),
         ) { child ->
             when (val instance = child.instance) {
-                is MainComponent.Child.Expenses -> ExpensesScreen(instance.component)
-                MainComponent.Child.Income -> EmptyScreen(R.string.income_placeholder)
-                MainComponent.Child.Accounts -> EmptyScreen(R.string.accounts_placeholder)
+                is MainComponent.Child.Transactions -> TransactionsScreen(
+                    type = instance.type,
+                    component = instance.component,
+                )
+                is MainComponent.Child.Accounts -> AccountsScreen(instance.component)
             }
         }
     }
@@ -62,25 +68,32 @@ private fun MainNavigationBar(
     onTabSelected: (MainTab) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    NavigationBar(modifier = modifier) {
-        MainTab.entries.forEach { tab ->
-            NavigationBarItem(
-                selected = selectedTab == tab,
-                onClick = { onTabSelected(tab) },
-                icon = { MainTabIcon(tab) },
-                label = { Text(stringResource(tab.labelRes)) },
-            )
-        }
-    }
-}
+    Column(modifier = modifier) {
+        HorizontalDivider(
+            thickness = 1.dp,
+            color = YaMoneyDesign.colors.navigationDivider,
+        )
 
-@Composable
-private fun EmptyScreen(@StringRes titleRes: Int) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(text = stringResource(titleRes), style = MaterialTheme.typography.titleLarge)
+        NavigationBar(
+            modifier = Modifier.weight(1f),
+            containerColor = YaMoneyDesign.colors.navigationBarContainer,
+        ) {
+            MainTab.entries.forEach { tab ->
+                NavigationBarItem(
+                    selected = selectedTab == tab,
+                    onClick = { onTabSelected(tab) },
+                    icon = { MainTabIcon(tab) },
+                    label = { Text(stringResource(tab.labelRes)) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        selectedTextColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
+                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    ),
+                )
+            }
+        }
     }
 }
 
@@ -94,8 +107,14 @@ private val MainTab.labelRes: Int
 @Composable
 private fun MainTabIcon(tab: MainTab) {
     when (tab) {
-        MainTab.Expenses -> Icon(Icons.AutoMirrored.Outlined.TrendingDown, contentDescription = null)
+        MainTab.Expenses -> Icon(
+            painter = painterResource(CoreUiR.drawable.ic_nav_expense),
+            contentDescription = null,
+        )
         MainTab.Income -> Icon(Icons.AutoMirrored.Outlined.TrendingUp, contentDescription = null)
-        MainTab.Accounts -> Icon(Icons.Outlined.AccountBalanceWallet, contentDescription = null)
+        MainTab.Accounts -> Icon(
+            painter = painterResource(CoreUiR.drawable.ic_nav_account),
+            contentDescription = null,
+        )
     }
 }

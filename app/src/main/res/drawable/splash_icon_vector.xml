@@ -1,0 +1,25 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="432dp"
+    android:height="432dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+    <group
+        android:name="coin"
+        android:pivotX="256"
+        android:pivotY="256"
+        android:scaleX="0.55"
+        android:scaleY="0.55">
+        <path
+            android:fillColor="#FFDC64"
+            android:pathData="M256,8A248,248 0,1 0,256,504A248,248 0,1 0,256,8Z" />
+        <path
+            android:fillColor="#FFC850"
+            android:pathData="M256,50.8A205.2,205.2 0,1 0,256,461.2A205.2,205.2 0,1 0,256,50.8Z" />
+        <path
+            android:fillColor="#FFF082"
+            android:pathData="M256,76.4A179.6,179.6 0,1 0,256,435.6A179.6,179.6 0,1 0,256,76.4Z" />
+        <path
+            android:fillColor="#1D1B20"
+            android:pathData="M338.038,155.732c-3.428,-2.804 -8.478,-2.298 -11.281,1.129L256,243.34l-70.755,-86.479c-2.804,-3.427 -7.854,-3.934 -11.281,-1.129c-3.427,2.804 -3.931,7.855 -1.128,11.281l66.247,80.97h-51.492c-4.427,0 -8.017,3.588 -8.017,8.017c0,4.428 3.589,8.017 8.017,8.017h60.392v18.171h-60.392c-4.427,0 -8.017,3.588 -8.017,8.017s3.589,8.017 8.017,8.017h60.392v77.495c0,4.428 3.589,8.017 8.017,8.017c4.427,0 8.017,-3.588 8.017,-8.017v-77.495h60.392c4.427,0 8.017,-3.588 8.017,-8.017s-3.589,-8.017 -8.017,-8.017h-60.392v-18.171h60.392c4.427,0 8.017,-3.588 8.017,-8.017c0,-4.428 -3.589,-8.017 -8.017,-8.017h-51.492l66.248,-80.97c2.802,-3.425 2.296,-8.477 -1.129,-11.281Z" />
+    </group>
+</vector>

@@ -7,10 +7,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import com.zagirlek.systemdesign.theme.YaMoneyDesign
-
-private val titleTextColor = Color(0xFFA39EA7)
 
 @Composable
 fun BalanceCard(
@@ -30,7 +27,7 @@ fun BalanceCard(
     ) {
         Text(
             text = title,
-            color = titleTextColor,
+            color = YaMoneyDesign.colors.balanceTitle,
             style = MaterialTheme.typography.labelLarge,
         )
         Text(

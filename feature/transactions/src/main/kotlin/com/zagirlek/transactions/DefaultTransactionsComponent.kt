@@ -1,0 +1,97 @@
+package com.zagirlek.transactions
+
+import com.arkivanov.decompose.ComponentContext
+import com.zagirlek.finance.api.expense.Expense
+import com.zagirlek.finance.api.expense.ExpensesRepository
+import com.zagirlek.finance.api.income.Income
+import com.zagirlek.finance.api.income.IncomesRepository
+import com.zagirlek.ui.cmp.MviComponent
+import com.zagirlek.ui.formatter.Currency
+import com.zagirlek.ui.formatter.DefaultMoneyFormatter
+import com.zagirlek.ui.formatter.Money
+import com.zagirlek.ui.formatter.MoneyFormatter
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.launch
+
+class DefaultTransactionsComponent(
+    componentContext: ComponentContext,
+    private val type: TransactionType,
+    private val expensesRepository: ExpensesRepository,
+    private val incomesRepository: IncomesRepository,
+    private val moneyFormatter: MoneyFormatter = DefaultMoneyFormatter(),
+) : MviComponent<TransactionsState, TransactionsMutation, TransactionsIntent, TransactionsReducer>(
+    reducer = TransactionsReducer,
+    componentContext = componentContext,
+), TransactionsComponent {
+
+    private val mutableState = MutableStateFlow<TransactionsState>(TransactionsState.Loading)
+
+    override val state: StateFlow<TransactionsState> = mutableState.asStateFlow()
+    override val effects: Flow<TransactionsEffect> = emptyFlow()
+
+    init {
+        loadTransactions()
+    }
+
+    override fun accept(intent: TransactionsIntent) {
+        when (intent) {
+            is TransactionsIntent.TransactionClicked -> Unit
+            TransactionsIntent.DateClicked -> Unit
+            TransactionsIntent.AnalyticsClicked -> Unit
+            TransactionsIntent.SettingsClicked -> Unit
+            TransactionsIntent.AddClicked -> Unit
+            TransactionsIntent.RetryClicked -> loadTransactions()
+        }
+    }
+
+    private fun loadTransactions() {
+        TransactionsMutation.Loading.reduce(mutableState)
+
+        componentScope.launch {
+            val mutation = runCatching {
+                when (type) {
+                    TransactionType.Expense -> expensesRepository.getExpenses().toExpensesMutation()
+                    TransactionType.Income -> incomesRepository.getIncomes().toIncomesMutation()
+                }
+            }.getOrElse {
+                TransactionsMutation.Error
+            }
+
+            mutation.reduce(mutableState)
+        }
+    }
+
+    private fun List<Expense>.toExpensesMutation(): TransactionsMutation = when {
+        isEmpty() -> TransactionsMutation.Empty
+        else -> TransactionsMutation.Content(
+            total = Money(sumOf(Expense::amount), Currency.Ruble).format(moneyFormatter),
+            items = map { expense ->
+                TransactionItemUi(
+                    id = expense.id.value,
+                    lead = expense.type.emoji,
+                    content = expense.description ?: expense.type.name,
+                    trail = Money(expense.amount, Currency.Ruble).format(moneyFormatter),
+                )
+            },
+        )
+    }
+
+    private fun List<Income>.toIncomesMutation(): TransactionsMutation = when {
+        isEmpty() -> TransactionsMutation.Empty
+        else -> TransactionsMutation.Content(
+            total = Money(sumOf(Income::amount), Currency.Ruble).format(moneyFormatter),
+            items = map { income ->
+                TransactionItemUi(
+                    id = income.id.value,
+                    lead = income.type.emoji,
+                    content = income.description ?: income.type.name,
+                    trail = Money(income.amount, Currency.Ruble).format(moneyFormatter),
+                )
+            },
+        )
+    }
+}

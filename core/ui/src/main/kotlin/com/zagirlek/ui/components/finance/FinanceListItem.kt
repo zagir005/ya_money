@@ -1,6 +1,6 @@
 package com.zagirlek.ui.components.finance
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,7 +18,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.zagirlek.systemdesign.theme.YaMoneyDesign
+import com.zagirlek.systemdesign.theme.YaMoneyTheme
 
 @Composable
 fun FinanceListItem(
@@ -44,9 +47,10 @@ fun FinanceListItem(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            modifier = modifier
-                .background(
-                    color = MaterialTheme.colorScheme.secondaryContainer,
+            modifier = Modifier
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant,
                     shape = CircleShape,
                 )
                 .size(dimensions.listLeadingSize),
@@ -69,6 +73,19 @@ fun FinanceListItem(
             color = MaterialTheme.colorScheme.onSurface,
             style = MaterialTheme.typography.titleMedium,
             textAlign = TextAlign.End,
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun FinanceListItemPreview() {
+    YaMoneyTheme {
+        FinanceListItem(
+            lead = "🛒",
+            content = "Продукты",
+            trail = "1 280 ₽",
+            onClick = null,
         )
     }
 }

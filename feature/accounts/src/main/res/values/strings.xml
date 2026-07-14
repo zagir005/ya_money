@@ -1,0 +1,5 @@
+<resources>
+    <string name="accounts_example_date">12 июня</string>
+    <string name="accounts_summary_title">Баланс, всего</string>
+    <string name="accounts_empty">Счетов пока нет</string>
+</resources>

@@ -95,7 +95,10 @@ private val YaMoneyShapes = Shapes(
 
 @Composable
 fun YaMoneyTheme(content: @Composable () -> Unit) {
-    CompositionLocalProvider(LocalYaMoneyDimensions provides YaMoneyDimensions()) {
+    CompositionLocalProvider(
+        LocalYaMoneyDimensions provides YaMoneyDimensions(),
+        LocalYaMoneyFinanceColors provides YaMoneyFinanceColors(),
+    ) {
         MaterialTheme(
             colorScheme = LightColors,
             typography = YaMoneyTypography,

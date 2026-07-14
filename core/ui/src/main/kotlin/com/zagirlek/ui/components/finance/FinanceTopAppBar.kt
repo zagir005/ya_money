@@ -16,14 +16,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import com.zagirlek.systemdesign.theme.YaMoneyDesign
 import com.zagirlek.systemdesign.theme.YaMoneyTheme
 import com.zagirlek.ui.R
-
-private val CalendarButtonContainerColor = Color(0xFFF4EFF8)
 
 @Composable
 fun FinanceTopAppBar(
@@ -31,7 +28,7 @@ fun FinanceTopAppBar(
     onDateClick: () -> Unit,
     onAnalyticsClick: () -> Unit,
     onSettingsClick: () -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     val dimensions = YaMoneyDesign.dimensions
 
@@ -81,7 +78,7 @@ fun FinanceCalendarButton(
         modifier = modifier.wrapContentWidth(),
         shape = MaterialTheme.shapes.extraLarge,
         colors = ButtonDefaults.buttonColors(
-            containerColor = CalendarButtonContainerColor,
+            containerColor = YaMoneyDesign.colors.dateSelectorContainer,
             contentColor = MaterialTheme.colorScheme.onSurface,
         )
     ) {

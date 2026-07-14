@@ -1,4 +1,4 @@
-package com.zagirlek.ui.components
+package com.zagirlek.ui.components.elements
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box

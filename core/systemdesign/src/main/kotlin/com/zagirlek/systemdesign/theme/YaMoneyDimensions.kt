@@ -3,6 +3,7 @@ package com.zagirlek.systemdesign.theme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -31,9 +32,22 @@ data class YaMoneyDimensions(
 )
 
 internal val LocalYaMoneyDimensions = staticCompositionLocalOf { YaMoneyDimensions() }
+internal val LocalYaMoneyFinanceColors = staticCompositionLocalOf { YaMoneyFinanceColors() }
+
+@Immutable
+data class YaMoneyFinanceColors(
+    val dateSelectorContainer: Color = YaMoneyLightPalette.DateSelectorContainer,
+    val balanceTitle: Color = YaMoneyLightPalette.BalanceTitle,
+    val navigationBarContainer: Color = YaMoneyLightPalette.NavigationBarContainer,
+    val navigationDivider: Color = YaMoneyLightPalette.NavigationDivider,
+)
 
 object YaMoneyDesign {
     val dimensions: YaMoneyDimensions
         @Composable
         get() = LocalYaMoneyDimensions.current
+
+    val colors: YaMoneyFinanceColors
+        @Composable
+        get() = LocalYaMoneyFinanceColors.current
 }

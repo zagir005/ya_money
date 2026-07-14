@@ -3,11 +3,14 @@
     <string name="example_date">12 июня</string>
     <string name="expenses_summary_title">Расходы, всего</string>
     <string name="expenses_total">%1$s ₽</string>
-    <string name="expenses_empty">Расходов пока нет</string>
+	<string name="expenses_empty">Расходов пока нет</string>
+    <string name="income_summary_title">Доходы, всего</string>
+    <string name="income_empty">Доходов пока нет</string>
     <string name="expenses_error">Не удалось загрузить расходы</string>
     <string name="expenses_retry">Повторить</string>
     <string name="expenses_analytics_content_description">Открыть аналитику</string>
     <string name="expenses_settings_content_description">Открыть настройки</string>
+    <string name="expenses_add_content_description">Добавить расход</string>
     <string name="expenses_preview_item_title">Продукты</string>
     <string name="expenses_preview_item_subtitle">Перекрёсток</string>
 </resources>
