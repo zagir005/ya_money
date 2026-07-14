@@ -1,4 +1,4 @@
-package com.zagirlek.ui.components
+package com.zagirlek.ui.components.finance
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,7 +25,6 @@ fun FinanceListItem(
     lead: String,
     content: String,
     trail: String,
-    trailTag: String,
     onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
@@ -65,9 +64,7 @@ fun FinanceListItem(
         )
 
         Text(
-            text = listOf(trail, trailTag)
-                .filter(String::isNotBlank)
-                .joinToString(separator = " "),
+            text = trail,
             modifier = Modifier.widthIn(min = dimensions.space40),
             color = MaterialTheme.colorScheme.onSurface,
             style = MaterialTheme.typography.titleMedium,

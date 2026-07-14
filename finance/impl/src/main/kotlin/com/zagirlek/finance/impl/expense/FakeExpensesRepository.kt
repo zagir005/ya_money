@@ -11,7 +11,7 @@ import java.time.Instant
 import java.time.LocalDate
 
 class FakeExpensesRepository : ExpensesRepository {
-    override fun getExpenses(): List<Expense> = expenses
+    override suspend fun getExpenses(): List<Expense> = expenses
 
     private companion object {
         val expenses = listOf(

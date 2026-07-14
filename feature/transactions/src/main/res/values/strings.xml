@@ -1,6 +1,6 @@
 <resources>
     <string name="expenses_title">Расходы</string>
-    <string name="expenses_selected_date">Сегодня</string>
+    <string name="example_date">12 июня</string>
     <string name="expenses_summary_title">Расходы, всего</string>
     <string name="expenses_total">%1$s ₽</string>
     <string name="expenses_empty">Расходов пока нет</string>

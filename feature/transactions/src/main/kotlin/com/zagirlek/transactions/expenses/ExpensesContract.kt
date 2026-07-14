@@ -12,8 +12,7 @@ data class ExpenseItemUi(
     val id: ExpenseId,
     val lead: String,
     val content: String,
-    val trail: String,
-    val trailTag: String,
+    val trail: String
 )
 
 sealed interface ExpensesState : State {
@@ -22,7 +21,7 @@ sealed interface ExpensesState : State {
     data object Error : ExpensesState
 
     data class Content(
-        val total: Money,
+        val total: String,
         val items: List<ExpenseItemUi>,
     ) : ExpensesState
 }
@@ -41,7 +40,7 @@ sealed interface ExpensesMutation : Mutation {
     data object Error : ExpensesMutation
 
     data class Content(
-        val total: Money,
+        val total: String,
         val items: List<ExpenseItemUi>,
     ) : ExpensesMutation
 }

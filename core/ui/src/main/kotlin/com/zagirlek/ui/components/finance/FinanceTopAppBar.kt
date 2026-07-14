@@ -1,4 +1,4 @@
-package com.zagirlek.ui.components
+package com.zagirlek.ui.components.finance
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -28,8 +28,6 @@ private val CalendarButtonContainerColor = Color(0xFFF4EFF8)
 @Composable
 fun FinanceTopAppBar(
     date: String,
-    analyticsContentDescription: String,
-    settingsContentDescription: String,
     onDateClick: () -> Unit,
     onAnalyticsClick: () -> Unit,
     onSettingsClick: () -> Unit,
@@ -54,7 +52,7 @@ fun FinanceTopAppBar(
             IconButton(onClick = onAnalyticsClick) {
                 Icon(
                     painter = painterResource(R.drawable.analytics),
-                    contentDescription = analyticsContentDescription,
+                    contentDescription = null,
                     modifier = Modifier.size(dimensions.iconSize),
                 )
             }
@@ -62,7 +60,7 @@ fun FinanceTopAppBar(
             IconButton(onClick = onSettingsClick) {
                 Icon(
                     painter = painterResource(R.drawable.settings),
-                    contentDescription = settingsContentDescription,
+                    contentDescription = null,
                     modifier = Modifier.size(dimensions.iconSize),
                 )
             }
@@ -111,8 +109,6 @@ private fun FinanceCalendarButtonPreview() {
     YaMoneyTheme { 
         FinanceTopAppBar(
             date = "12 июня",
-            analyticsContentDescription = "Аналитика",
-            settingsContentDescription = "Настройки",
             onDateClick = {},
             onAnalyticsClick = {},
             onSettingsClick = {},

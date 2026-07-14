@@ -8,6 +8,7 @@ import com.zagirlek.ui.formatter.Currency
 import com.zagirlek.ui.formatter.DefaultMoneyFormatter
 import com.zagirlek.ui.formatter.Money
 import com.zagirlek.ui.formatter.MoneyFormatter
+import com.zagirlek.ui.mvi.MviReducer
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,7 +24,6 @@ class DefaultExpensesComponent(
     reducer = ExpensesReducer,
     componentContext = componentContext,
 ), ExpensesComponent {
-
     private val mutableState = MutableStateFlow<ExpensesState>(ExpensesState.Loading)
 
     override val state: StateFlow<ExpensesState> = mutableState.asStateFlow()
@@ -57,7 +57,7 @@ class DefaultExpensesComponent(
                         total = Money(
                             amount = expenses.sumOf(Expense::amount),
                             currency = Currency.Ruble,
-                        ),
+                        ).format(moneyFormatter),
                         items = expenses.map(::toExpenseItemUi),
                     )
                 }
@@ -73,9 +73,6 @@ class DefaultExpensesComponent(
         id = expense.id,
         lead = expense.type.emoji,
         content = expense.description ?: expense.type.name,
-        trail = moneyFormatter.format(
-            Money(amount = expense.amount, currency = Currency.Ruble),
-        ),
-        trailTag = "",
+        trail = Money(amount = expense.amount, currency = Currency.Ruble).format(moneyFormatter)
     )
 }

@@ -1,4 +1,4 @@
-package com.zagirlek.ui.components
+package com.zagirlek.ui.components.finance
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,16 +9,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import com.zagirlek.systemdesign.theme.YaMoneyDesign
-import com.zagirlek.ui.formatter.Money
-import com.zagirlek.ui.formatter.MoneyFormatter
 
 private val titleTextColor = Color(0xFFA39EA7)
 
 @Composable
 fun BalanceCard(
     title: String,
-    balance: Money,
-    moneyFormatter: MoneyFormatter,
+    balance: String,
     modifier: Modifier = Modifier
 ) {
     val dimensions = YaMoneyDesign.dimensions
@@ -37,7 +34,7 @@ fun BalanceCard(
             style = MaterialTheme.typography.labelLarge,
         )
         Text(
-            text = moneyFormatter.format(balance),
+            text = balance,
             color = MaterialTheme.colorScheme.onSurface,
             style = MaterialTheme.typography.displayLarge,
         )
