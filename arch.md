@@ -26,8 +26,8 @@ portrait-ориентации; landscape-layout и тёмная палитра �
 - Навигация и lifecycle экранных компонентов — Decompose.
 - Presentation построен на собственном минимальном MVI runtime поверх
   Coroutines и Flow.
-- Compile-time DI — Metro. Composition root находится в `:app`.
-- Разработка идёт вертикальными срезами: контракт → fake-данные → Store → UI,
+- DI пока ручной и явный. Composition root находится в `:app`.
+- Разработка идёт вертикальными срезами: контракт → fake-данные → MVI Component → UI,
   а не последовательным созданием всех data-, domain- и UI-слоёв.
 - Расходы и доходы — два режима одной feature `:feature:transactions`,
   параметризованной `TransactionType`.
@@ -71,7 +71,7 @@ flowchart TD
 
 - `Application`, `MainActivity` и Android manifest;
 - корневая тема;
-- Metro `AppGraph`;
+- ручной `AppDependencies`;
 - `RootComponent` и `MainComponent`;
 - связывание concrete-реализаций из `:finance:impl` с интерфейсами из
   `:finance:api`.
@@ -92,7 +92,7 @@ flowchart TD
 - use case только для операций с собственным правилом или несколькими
   репозиториями.
 
-Модуль не зависит от Android SDK, Compose, Decompose, Metro, Ktor, Room и
+Модуль не зависит от Android SDK, Compose, Decompose, DI-фреймворков, Ktor, Room и
 feature-модулей. Даже если Gradle-модуль временно технически собран как Android
 Library, production-код в нём остаётся чистым Kotlin, чтобы модуль можно было
 перевести на Kotlin/JVM без смены API.
@@ -142,35 +142,35 @@ targets. Новый устойчивый размер сначала добав�
 
 Общий UI уровня финансового приложения:
 
-- базовый контракт MVI (`MviStore`, `MviReducer`);
+- базовый MVI runtime (`MviComponent`) и контракт (`MviStore`, `MviReducer`);
 - stateless layout и финансовые UI-компоненты, только если их уже используют
   минимум две feature;
 - `UiText`, `UiError`, форматтеры денег и дат для UI.
 
 Модуль может зависеть от `:finance:api` и `:core:systemdesign`, но не загружает
-данные, не содержит Store конкретного экрана и не управляет навигацией.
+данные, не содержит MVI Component конкретного экрана и не управляет навигацией.
 
 ### `:feature:transactions`
 
 Presentation вертикального среза транзакций:
 
 - расход и доход как независимые экземпляры одного `TransactionsComponent`;
-- MVI contract, Store, reducer, UI mapper и Compose screen;
+- MVI contract, Component, reducer, UI mapper и Compose screen;
 - callbacks наружу для будущей навигации.
 
 Вкладки расходов и доходов используют одну реализацию, но у каждой свой
-экземпляр Component и Store: сохраняются независимые дата, состояние загрузки и
+экземпляр Component: сохраняются независимые дата, состояние загрузки и
 позиция списка.
 
 ### `:feature:accounts`
 
 Presentation вертикального среза счетов:
 
-- `AccountsComponent`, собственный MVI contract, Store, reducer и UI mapper;
+- `AccountsComponent`, собственный MVI contract, reducer и UI mapper;
 - экран списка и общего баланса;
 - callbacks для будущего перехода к счёту.
 
-Feature может использовать общий stateless layout, но не Store транзакций.
+Feature может использовать общий stateless layout, но не Component транзакций.
 
 ### Будущие core-модули
 
@@ -197,15 +197,16 @@ repository implementation.
 1. `:finance:api` ни от одного project-модуля не зависит.
 2. `:finance:impl` зависит от `:finance:api`, но API-контракт не знает об impl.
 3. Feature зависит от `:finance:api`, а не от `:finance:impl` и другой feature.
-4. `:app` — единственное место, знающее concrete implementation и DI graph.
-5. Compose не получает репозитории и не обращается к Metro/service locator.
+4. `:app` — единственное место, знающее concrete implementation и собирающее
+   зависимости вручную.
+5. Compose не получает репозитории и не обращается к DI container/service locator.
 6. DTO, Entity, DAO и UI model не являются domain model и не выходят за свои
    границы.
 7. Общий компонент попадает в `:core:ui` только после двух реальных
    потребителей; до этого он живёт рядом с feature.
 8. `:core:systemdesign` не зависит от finance, UI feature или навигации.
 9. Зависимости передаются через конструктор. `ComponentContext`, ID экрана и
-   callbacks — runtime-параметры, а не Metro bindings.
+   callbacks — runtime-параметры, а не зависимости контейнера.
 
 ## 5. Данные и offline-first
 
@@ -214,7 +215,7 @@ repository implementation.
 
 ```mermaid
 flowchart LR
-    UI["Compose / Store"] --> Api["Repository contract\nfinance:api"]
+    UI["Compose / MVI Component"] --> Api["Repository contract\nfinance:api"]
     Api --> Repository["OfflineFirstRepository\nfinance:impl"]
     Repository --> Local["Room local source"]
     Repository --> Remote["Ktor remote source"]
@@ -253,44 +254,62 @@ container заменяется на `ChildPages`, сохраняющий доч�
 
 Общий визуальный каркас допускается как stateless `FinanceOverviewLayout` со
 слотами `header`, `summary`, `content`, `floatingActionButton`. Он не содержит
-`when` по feature, Store, репозитории или навигатор.
+`when` по feature, MVI Component, репозитории или навигатор.
 
 Не создаётся общий `HomeState`, содержащий одновременно `transactions` и
 `accounts`: это разные области, с разными ошибками, операциями и будущими
 сценариями.
 
-## 7. Metro
+## 7. Ручной DI
 
-Metro используется только для compile-time построения графа:
+Пока граф небольшой, используется ручное внедрение зависимостей:
 
-- `:app` объявляет `AppGraph` через `@DependencyGraph`;
-- `:finance:impl` предоставляет реализации repository interfaces;
-- Store и Component создаются на экземпляр экрана, а не как singleton;
-- scope применяется только при реальной общей lifecycle-потребности;
-- Compose и domain-код не получают graph.
+- `AppDependencies` в `:app` создаёт concrete-реализации;
+- `MainActivity` передаёт зависимости в `DefaultMainComponent` через конструктор;
+- `MainComponent` передаёт repository в `DefaultExpensesComponent` через
+  конструктор;
+- MVI Component создаётся на экземпляр экрана, а не как singleton;
+- Compose и domain-код не получают `AppDependencies` и не используют service
+  locator.
 
-На текущем этапе binding-ы простые:
+На текущем этапе связывание простое:
 
 ```text
 TransactionsRepository -> FakeTransactionsRepository
 AccountsRepository     -> FakeAccountsRepository
 ```
 
-Переход к remote/offline-first реализации меняет Metro binding, но не API
-feature и не Compose UI.
+Переход к remote/offline-first реализации меняет создание зависимости в
+`AppDependencies`, но не API feature и не Compose UI. DI-фреймворк добавляется
+только если ручной composition root станет заметно сложнее.
 
 ## 8. MVI
 
 ### Контракт
 
 ```kotlin
-interface MviStore<Intent : Any, State : Any, Effect : Any> {
-    val state: StateFlow<State>
-    val effects: Flow<Effect>
+interface State
+interface Mutation
+interface Intent
+interface Effect
 
-    fun accept(intent: Intent)
+interface MviStore<I : Intent, S : State, E : Effect> {
+    val state: StateFlow<S>
+    val effects: Flow<E>
+
+    fun accept(intent: I)
+}
+
+fun interface MviReducer<S : State, M : Mutation> {
+    fun reduce(state: S, mutation: M): S
 }
 ```
+
+`MviComponent` принимает `MviReducer` и `ComponentContext`. Его защищённый
+`reduce(state: MutableStateFlow<S>)` вызывает `MutableStateFlow.update` и
+передаёт reducer текущее значение, полученное внутри атомарного update-блока.
+Конкретный component реализует свой `MviStore`; базовый класс не публикует
+mutable state и не навязывает транспорт effects.
 
 - `Intent` — действие пользователя или UI-событие.
 - `State` — полное immutable-состояние, достаточное для отрисовки экрана.
@@ -298,44 +317,54 @@ interface MviStore<Intent : Any, State : Any, Effect : Any> {
 - `Effect` — одноразовое некритичное UI-действие.
 - `Output` — типизированный запрос Component к родителю, обычно навигационный.
 
-Общий `BaseStore` не создаётся без реально повторяющегося поведения. Базовый
-контракт и чистый `MviReducer` живут в `:core:ui`; Store, Intent, State,
-Mutation, Effect и Output конкретного экрана — внутри feature.
+`State`, `Mutation`, `Intent` и `Effect` — marker-интерфейсы. Каждый тип
+конкретного экрана явно реализует свой marker: это сохраняет границы MVI на
+этапе компиляции и не допускает случайную передачу intent или state другой
+feature.
+
+Общий `BaseStore` не создаётся. `MviComponent` в `:core:ui` — минимальный
+runtime для экранного Decompose-component: он связывает coroutine scope с
+lifecycle и атомарно применяет mutation через чистый reducer. Он не хранит
+бизнес-логику, не создаёт state сам и не знает о конкретной feature. Конкретный
+component создаёт `MutableStateFlow`, публикует его как `StateFlow`, принимает
+intent, вызывает repository/use case и применяет полученные mutations.
+
+Это осознанное исключение из правила о двух потребителях для UI-компонентов:
+`MviComponent` — инфраструктура presentation-слоя, а не переиспользуемый
+визуальный компонент. Intent, State, Mutation, Effect и Output
+конкретного экрана остаются внутри feature.
 
 ### Поток данных
 
 ```mermaid
 flowchart LR
     Compose["Compose UI"] -->|Intent| Component["Decompose Component"]
-    Component --> Store["MVI Store"]
-    Store -->|contract / use case| Api["finance:api"]
-    Api --> Store
-    Store -->|Mutation| Reducer["Pure reducer"]
+    Component -->|contract / use case| Api["finance:api"]
+    Api -->|result| Component
+    Component -->|Mutation| Reducer["Pure reducer"]
     Reducer -->|StateFlow| Compose
-    Store -->|Effect| Compose
-    Store -->|Output| Component
+    Component -->|Effect| Compose
     Component -->|callback| Parent["Parent Component"]
 ```
 
 ### Ответственности
 
-**Store** принимает Intent, вызывает repository/use case, превращает результаты
-в Mutation, сериализует обновления State и отправляет Effect/Output. Он не
-содержит Composable, Android `Context`, прямую навигацию Decompose и mutable
-state, доступный снаружи.
+**MviComponent** принимает Intent, вызывает repository/use case, превращает
+результаты в Mutation, сериализует обновления State и отправляет Effect/Output.
+Он не содержит Composable, Android `Context`, прямую навигацию Decompose и
+mutable state, доступный снаружи. Внешнему коду он предоставляет только
+`StateFlow`, `Flow<Effect>` и `accept` через MVI-контракт.
 
 **Reducer** — чистая функция `previous state + mutation -> new state`. Он не
 вызывает suspend-функции, не обращается к repository и не отправляет Effect.
 
-**Component** владеет Store, привязывает его scope к lifecycle Decompose,
-экспортирует State/Effect/`accept` и превращает Output в callback родителя.
+`MviComponent` привязывает scope к lifecycle Decompose; конкретный экранный
+component превращает Output в callback родителя. Навигация не является Effect:
+component вызывает callback, а владелец navigation container выполняет переход.
 
 **Composable container** lifecycle-aware собирает State и Effect.
 **Stateless content** принимает State и обработчик Intent; его можно вызывать в
-Preview и UI-тесте без Decompose, Metro и Store.
-
-Навигация не является Effect: Store создаёт Output, Component вызывает callback,
-а владелец navigation container выполняет переход.
+Preview и UI-тесте без Decompose, ручного DI и MVI Component.
 
 ### State, loading и effect
 
@@ -347,7 +376,7 @@ Preview и UI-тесте без Decompose, Metro и Store.
   `Effect.ShowMessage`; ошибка всего экрана — частью State с `Retry`.
 - Effect доставляется без replay и не используется для критически важного
   результата.
-- При смене даты или фильтра Store отменяет устаревшую загрузку, чтобы старый
+- При смене даты или фильтра component отменяет устаревшую загрузку, чтобы старый
   ответ не перезаписал новый State.
 
 ## 9. Структура пакетов
@@ -373,7 +402,7 @@ core/systemdesign/
 
 core/ui/
   mvi/
-  component/     # только после второго потребителя
+  cmp/           # MviComponent: lifecycle и reducer runtime
   formatter/
   model/
 
@@ -396,8 +425,8 @@ feature/accounts/
 - Composable отображает State и отправляет Intent.
 - Side effect отсутствует в reducer и stateless UI.
 - Feature не зависит от feature.
-- Расходы и доходы используют один тип Store с разным `TransactionType`; счета
-  всегда используют отдельный Store.
+- Расходы и доходы используют один тип MVI Component с разным `TransactionType`;
+  счета всегда используют отдельный MVI Component.
 - Внешние data-модели не пересекают `:finance:impl`.
 - Domain contract не зависит от Android и деталей хранения.
 - Архитектура усложняется только вместе с конкретным требованием.

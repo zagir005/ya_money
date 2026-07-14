@@ -12,8 +12,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.zagirlek.systemdesign.foundation.YaMoneyDimensions
-import com.zagirlek.systemdesign.foundation.LocalYaMoneyDimensions
 
 private val LightColors = lightColorScheme(
     primary = YaMoneyLightPalette.Primary,
@@ -37,7 +35,7 @@ private val LightColors = lightColorScheme(
     onErrorContainer = YaMoneyLightPalette.OnErrorContainer,
 )
 
-private val FinanceTypography = Typography(
+private val YaMoneyTypography = Typography(
     headlineSmall = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.SemiBold,
@@ -74,9 +72,15 @@ private val FinanceTypography = Typography(
         fontSize = 12.sp,
         lineHeight = 16.sp,
     ),
+    labelLarge = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Medium,
+        fontSize = 14.sp,
+        lineHeight = 20.sp,
+    )
 )
 
-private val FinanceShapes = Shapes(
+private val YaMoneyShapes = Shapes(
     extraSmall = RoundedCornerShape(4.dp),
     small = RoundedCornerShape(8.dp),
     medium = RoundedCornerShape(12.dp),
@@ -84,19 +88,13 @@ private val FinanceShapes = Shapes(
     extraLarge = RoundedCornerShape(28.dp),
 )
 
-/**
- * Application theme for the first release.
- *
- * Dynamic colours are deliberately disabled: the visual design must remain stable.
- * The function has no dark-theme switch until dark tokens and layouts are designed.
- */
 @Composable
-fun FinanceTheme(content: @Composable () -> Unit) {
+fun YaMoneyTheme(content: @Composable () -> Unit) {
     CompositionLocalProvider(LocalYaMoneyDimensions provides YaMoneyDimensions()) {
         MaterialTheme(
             colorScheme = LightColors,
-            typography = FinanceTypography,
-            shapes = FinanceShapes,
+            typography = YaMoneyTypography,
+            shapes = YaMoneyShapes,
             content = content,
         )
     }

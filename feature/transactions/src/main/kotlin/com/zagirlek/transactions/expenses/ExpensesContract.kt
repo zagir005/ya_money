@@ -1,23 +1,23 @@
 package com.zagirlek.transactions.expenses
 
 import com.zagirlek.finance.api.expense.ExpenseId
-import com.zagirlek.ui.listitem.ListItem
 
-sealed interface ExpensesState {
-    data object Loading : ExpensesState
+data class ExpenseItemUi(
+    val id: ExpenseId,
+    val lead: String,
+    val content: String,
+    val trail: String,
+    val trailTag: String,
+)
 
-    data class Content(
-        val summaryTitle: String,
-        val total: String,
-        val items: List<ListItem>,
-    ) : ExpensesState
-
-    data object Empty : ExpensesState
-
-    data class Error(val message: String) : ExpensesState
-}
+data class ExpensesStateContent(
+    val total: String,
+    val items: List<ExpenseItemUi>,
+)
 
 sealed interface ExpensesIntent {
     data class ExpenseClicked(val id: ExpenseId) : ExpensesIntent
-    data object RetryClicked : ExpensesIntent
+    data object DateClicked : ExpensesIntent
+    data object AnalyticsClicked : ExpensesIntent
+    data object SettingsClicked : ExpensesIntent
 }

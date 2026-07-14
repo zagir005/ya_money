@@ -13,19 +13,12 @@ value class AccountId(val value: String)
 @JvmInline
 value class ExpenseTypeId(val value: String)
 
-/** A category of expense. Emoji is a domain value received from the backend. */
 data class ExpenseType(
     val id: ExpenseTypeId,
     val name: String,
-    val emoji: String,
+    val emoji: String
 )
 
-/**
- * Financial operation in the expense flow.
- *
- * Display strings such as list subtitles and currency labels deliberately do not
- * belong here: the presentation layer creates them for a concrete screen.
- */
 data class Expense(
     val id: ExpenseId,
     val accountId: AccountId,

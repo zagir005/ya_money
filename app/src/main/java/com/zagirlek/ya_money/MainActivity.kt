@@ -6,18 +6,17 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
-import com.zagirlek.ya_money.di.AppGraph
+import com.zagirlek.ya_money.di.AppDependencies
 import com.zagirlek.ya_money.navigation.DefaultMainComponent
 import com.zagirlek.ya_money.navigation.MainScreen
-import com.zagirlek.systemdesign.theme.FinanceTheme
-import dev.zacsweers.metro.createGraph
+import com.zagirlek.systemdesign.theme.YaMoneyTheme
 
 class MainActivity : ComponentActivity() {
-    private val graph: AppGraph by lazy { createGraph<AppGraph>() }
+    private val dependencies = AppDependencies()
     private val mainComponent by lazy {
         DefaultMainComponent(
             componentContext = DefaultComponentContext(LifecycleRegistry()),
-            expensesRepository = graph.expensesRepository,
+            expensesRepository = dependencies.expensesRepository,
         )
     }
 
@@ -25,7 +24,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            FinanceTheme {
+            YaMoneyTheme {
                 MainScreen(component = mainComponent)
             }
         }

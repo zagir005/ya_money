@@ -2,7 +2,6 @@ package com.zagirlek.systemdesign.theme
 
 import androidx.compose.ui.graphics.Color
 
-/** Palette for the current light-only release. Dark colours are added with the dark theme. */
 internal object YaMoneyLightPalette {
     val Primary = Color(0xFF006C84)
     val OnPrimary = Color(0xFFFFFFFF)

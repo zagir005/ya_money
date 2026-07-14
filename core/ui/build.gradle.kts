@@ -27,6 +27,8 @@ android {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
+    implementation(libs.decompose)
+    implementation(libs.essenty.lifecycle.coroutines)
     implementation(project(":core:systemdesign"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.foundation)

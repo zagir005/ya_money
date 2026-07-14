@@ -1,4 +1,4 @@
-package com.zagirlek.systemdesign.foundation
+package com.zagirlek.systemdesign.theme
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -6,13 +6,6 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-/**
- * Единственный источник размеров для Compose UI.
- *
- * Значения соответствуют первой версии: светлая тема и портретная ориентация.
- * Экранные composable-функции не объявляют собственные `dp`-литералы: они берут
- * базовый ритм или семантический размер из этого набора.
- */
 @Immutable
 data class YaMoneyDimensions(
     val space2: Dp = 2.dp,
@@ -39,7 +32,7 @@ data class YaMoneyDimensions(
 
 internal val LocalYaMoneyDimensions = staticCompositionLocalOf { YaMoneyDimensions() }
 
-object FinanceDesign {
+object YaMoneyDesign {
     val dimensions: YaMoneyDimensions
         @Composable
         get() = LocalYaMoneyDimensions.current

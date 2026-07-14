@@ -1,30 +1,34 @@
 package com.zagirlek.transactions.expenses
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Analytics
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import com.zagirlek.systemdesign.foundation.FinanceDesign
-import com.zagirlek.systemdesign.theme.FinanceTheme
-import com.zagirlek.ui.listitem.FinanceListItem
-import com.zagirlek.ui.listitem.ListItem
-import com.zagirlek.ui.listitem.ListItemContent
-import com.zagirlek.ui.listitem.ListItemLead
-import com.zagirlek.ui.listitem.ListItemTrail
+import com.zagirlek.finance.api.expense.ExpenseId
+import com.zagirlek.systemdesign.theme.YaMoneyDesign
+import com.zagirlek.systemdesign.theme.YaMoneyTheme
+import com.zagirlek.transactions.R
+import com.zagirlek.ui.components.BalanceCard
+import com.zagirlek.ui.components.FinanceListItem
 
 @Composable
 fun ExpensesScreen(component: ExpensesComponent) {
@@ -36,31 +40,24 @@ fun ExpensesScreen(component: ExpensesComponent) {
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExpensesContent(
     state: ExpensesState,
     onIntent: (ExpensesIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val dimensions = FinanceDesign.dimensions
-
-    Column(
-        modifier = modifier.fillMaxSize(),
-    ) {
-        Text(
-            text = "Расходы",
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(dimensions.topBarHeight)
-                .padding(horizontal = dimensions.screenHorizontalPadding),
-            style = MaterialTheme.typography.titleLarge,
+    Column(modifier = modifier.fillMaxSize()) {
+        ExpensesTopAppBar(
+            onDateClicked = { onIntent(ExpensesIntent.DateClicked) },
+            onAnalyticsClicked = { onIntent(ExpensesIntent.AnalyticsClicked) },
+            onSettingsClicked = { onIntent(ExpensesIntent.SettingsClicked) },
         )
 
         when (state) {
-            ExpensesState.Loading -> CenteredMessage("Загрузка…")
-            ExpensesState.Empty -> CenteredMessage("Расходов пока нет")
-            is ExpensesState.Error -> ErrorContent(
-                message = state.message,
+            ExpensesState.Loading -> LoadingContent()
+            ExpensesState.Empty -> CenteredMessage(stringResource(R.string.expenses_empty))
+            ExpensesState.Error -> ErrorContent(
                 onRetryClicked = { onIntent(ExpensesIntent.RetryClicked) },
             )
             is ExpensesState.Content -> ExpensesList(
@@ -71,18 +68,59 @@ fun ExpensesContent(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ExpensesTopAppBar(
+    onDateClicked: () -> Unit,
+    onAnalyticsClicked: () -> Unit,
+    onSettingsClicked: () -> Unit,
+) {
+    val dimensions = YaMoneyDesign.dimensions
+
+    TopAppBar(
+        modifier = Modifier.height(dimensions.topBarHeight),
+        title = {
+            Text(
+                text = stringResource(R.string.expenses_title),
+                style = MaterialTheme.typography.titleLarge,
+            )
+        },
+        actions = {
+            TextButton(onClick = onDateClicked) {
+                Text(text = stringResource(R.string.expenses_selected_date))
+            }
+            IconButton(onClick = onAnalyticsClicked) {
+                Icon(
+                    imageVector = Icons.Outlined.Analytics,
+                    contentDescription = stringResource(R.string.expenses_analytics_content_description),
+                )
+            }
+            IconButton(onClick = onSettingsClicked) {
+                Icon(
+                    imageVector = Icons.Outlined.Settings,
+                    contentDescription = stringResource(R.string.expenses_settings_content_description),
+                )
+            }
+        },
+    )
+}
+
 @Composable
 private fun ExpensesList(
     state: ExpensesState.Content,
-    onExpenseClicked: (com.zagirlek.finance.api.expense.ExpenseId) -> Unit,
+    onExpenseClicked: (ExpenseId) -> Unit,
 ) {
-    val dimensions = FinanceDesign.dimensions
+    val dimensions = YaMoneyDesign.dimensions
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(dimensions.space4),
     ) {
         item {
+            BalanceCard(
+                title = stringResource(R.string.expenses_summary_title),
+                balance = state
+            )
             Column(
                 modifier = Modifier.padding(
                     horizontal = dimensions.screenHorizontalPadding,
@@ -91,57 +129,24 @@ private fun ExpensesList(
                 verticalArrangement = Arrangement.spacedBy(dimensions.space4),
             ) {
                 Text(
-                    text = state.summaryTitle,
+                    text = stringResource(R.string.expenses_summary_title),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Text(
-                    text = "${state.total} ₽",
+                    text = stringResource(R.string.expenses_total, state.total),
                     style = MaterialTheme.typography.headlineSmall,
                 )
             }
         }
-        items(
-            items = state.items,
-            key = ListItem::id,
-        ) { item ->
+        items(items = state.items, key = ExpenseItemUi::id) { item ->
             FinanceListItem(
-                item = item,
-                onClick = { onExpenseClicked(com.zagirlek.finance.api.expense.ExpenseId(item.id)) },
+                lead = item.lead,
+                content = item.content,
+                trail = item.trail,
+                trailTag = item.trailTag,
+                onClick = { onExpenseClicked(item.id) },
             )
-        }
-    }
-}
-
-@Composable
-private fun CenteredMessage(message: String) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(text = message, style = MaterialTheme.typography.bodyLarge)
-    }
-}
-
-@Composable
-private fun ErrorContent(
-    message: String,
-    onRetryClicked: () -> Unit,
-) {
-    val dimensions = FinanceDesign.dimensions
-
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(dimensions.space12),
-        ) {
-            Text(text = message, style = MaterialTheme.typography.bodyLarge)
-            Button(onClick = onRetryClicked) {
-                Text("Повторить")
-            }
         }
     }
 }
@@ -149,17 +154,17 @@ private fun ErrorContent(
 @Preview(showBackground = true)
 @Composable
 private fun ExpensesContentPreview() {
-    FinanceTheme {
+    YaMoneyTheme {
         ExpensesContent(
             state = ExpensesState.Content(
-                summaryTitle = "Расходы, всего",
                 total = "1 765,50",
                 items = listOf(
-                    ListItem(
-                        id = "preview",
-                        lead = ListItemLead.Emoji("🛒"),
-                        content = ListItemContent("Продукты", "Перекрёсток"),
-                        trail = ListItemTrail("₽", "1 280,50"),
+                    ExpenseItemUi(
+                        id = ExpenseId("preview"),
+                        lead = "🛒",
+                        content = stringResource(R.string.expenses_preview_item_title),
+                        trail = "1 280,50",
+                        trailTag = "₽",
                     ),
                 ),
             ),
@@ -171,7 +176,7 @@ private fun ExpensesContentPreview() {
 @Preview(showBackground = true)
 @Composable
 private fun ExpensesLoadingPreview() {
-    FinanceTheme {
+    YaMoneyTheme {
         ExpensesContent(
             state = ExpensesState.Loading,
             onIntent = {},
@@ -182,7 +187,7 @@ private fun ExpensesLoadingPreview() {
 @Preview(showBackground = true)
 @Composable
 private fun ExpensesEmptyPreview() {
-    FinanceTheme {
+    YaMoneyTheme {
         ExpensesContent(
             state = ExpensesState.Empty,
             onIntent = {},
@@ -193,9 +198,9 @@ private fun ExpensesEmptyPreview() {
 @Preview(showBackground = true)
 @Composable
 private fun ExpensesErrorPreview() {
-    FinanceTheme {
+    YaMoneyTheme {
         ExpensesContent(
-            state = ExpensesState.Error("Не удалось загрузить расходы"),
+            state = ExpensesState.Error,
             onIntent = {},
         )
     }
