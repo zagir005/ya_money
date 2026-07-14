@@ -1,9 +1,8 @@
 package com.zagirlek.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -11,6 +10,7 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.sp
 import com.zagirlek.systemdesign.theme.YaMoneyDesign
 import com.zagirlek.systemdesign.theme.YaMoneyTheme
 import com.zagirlek.ui.R
@@ -28,9 +27,47 @@ private val CalendarButtonContainerColor = Color(0xFFF4EFF8)
 
 @Composable
 fun FinanceTopAppBar(
-    modifier: Modifier = Modifier
+    date: String,
+    analyticsContentDescription: String,
+    settingsContentDescription: String,
+    onDateClick: () -> Unit,
+    onAnalyticsClick: () -> Unit,
+    onSettingsClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    
+    val dimensions = YaMoneyDesign.dimensions
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(dimensions.topBarHeight)
+            .padding(horizontal = dimensions.screenHorizontalPadding),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        FinanceCalendarButton(
+            date = date,
+            onClick = onDateClick,
+        )
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onAnalyticsClick) {
+                Icon(
+                    painter = painterResource(R.drawable.analytics),
+                    contentDescription = analyticsContentDescription,
+                    modifier = Modifier.size(dimensions.iconSize),
+                )
+            }
+
+            IconButton(onClick = onSettingsClick) {
+                Icon(
+                    painter = painterResource(R.drawable.settings),
+                    contentDescription = settingsContentDescription,
+                    modifier = Modifier.size(dimensions.iconSize),
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -51,8 +88,7 @@ fun FinanceCalendarButton(
         )
     ) {
         Row(
-            modifier = Modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.spacedBy(dimensions.space4, alignment = Alignment.CenterHorizontally),
+            horizontalArrangement = Arrangement.spacedBy(dimensions.space8),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
@@ -63,7 +99,6 @@ fun FinanceCalendarButton(
 
             Text(
                 text = date,
-                modifier = Modifier.padding(start = dimensions.space16),
                 style = MaterialTheme.typography.labelLarge
             )
         }
@@ -74,11 +109,13 @@ fun FinanceCalendarButton(
 @Composable
 private fun FinanceCalendarButtonPreview() {
     YaMoneyTheme { 
-        FinanceCalendarButton(
+        FinanceTopAppBar(
             date = "12 июня",
-            onClick = {
-
-            }
+            analyticsContentDescription = "Аналитика",
+            settingsContentDescription = "Настройки",
+            onDateClick = {},
+            onAnalyticsClick = {},
+            onSettingsClick = {},
         )
     }
 }

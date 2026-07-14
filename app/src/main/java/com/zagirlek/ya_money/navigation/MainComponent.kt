@@ -48,10 +48,13 @@ class DefaultMainComponent(
 
     private fun createChild(
         configuration: MainTab,
-        @Suppress("UNUSED_PARAMETER") componentContext: ComponentContext,
+        componentContext: ComponentContext,
     ): MainComponent.Child = when (configuration) {
         MainTab.Expenses -> MainComponent.Child.Expenses(
-            component = DefaultExpensesComponent(expensesRepository),
+            component = DefaultExpensesComponent(
+                componentContext = componentContext,
+                expensesRepository = expensesRepository,
+            ),
         )
         MainTab.Income -> MainComponent.Child.Income
         MainTab.Accounts -> MainComponent.Child.Accounts

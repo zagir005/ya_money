@@ -1,6 +1,6 @@
 package com.zagirlek.finance.impl.expense
 
-import com.zagirlek.finance.api.expense.AccountId
+import com.zagirlek.finance.api.account.AccountId
 import com.zagirlek.finance.api.expense.Expense
 import com.zagirlek.finance.api.expense.ExpenseId
 import com.zagirlek.finance.api.expense.ExpenseType
@@ -10,7 +10,6 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 
-/** Temporary source for the first homework iteration. */
 class FakeExpensesRepository : ExpensesRepository {
     override fun getExpenses(): List<Expense> = expenses
 

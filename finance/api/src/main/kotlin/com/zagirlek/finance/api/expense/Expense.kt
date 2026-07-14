@@ -1,14 +1,12 @@
 package com.zagirlek.finance.api.expense
 
+import com.zagirlek.finance.api.account.AccountId
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 
 @JvmInline
 value class ExpenseId(val value: String)
-
-@JvmInline
-value class AccountId(val value: String)
 
 @JvmInline
 value class ExpenseTypeId(val value: String)

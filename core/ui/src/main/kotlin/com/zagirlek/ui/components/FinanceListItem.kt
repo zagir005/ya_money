@@ -65,7 +65,9 @@ fun FinanceListItem(
         )
 
         Text(
-            text = "$trail $trailTag",
+            text = listOf(trail, trailTag)
+                .filter(String::isNotBlank)
+                .joinToString(separator = " "),
             modifier = Modifier.widthIn(min = dimensions.space40),
             color = MaterialTheme.colorScheme.onSurface,
             style = MaterialTheme.typography.titleMedium,

@@ -1,6 +1,5 @@
 package com.zagirlek.ui.components
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -20,7 +19,7 @@ fun BalanceCard(
     title: String,
     balance: Money,
     moneyFormatter: MoneyFormatter,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     val dimensions = YaMoneyDesign.dimensions
 
@@ -28,15 +27,14 @@ fun BalanceCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(
-                horizontal = dimensions.screenHorizontalPadding,
-                vertical = dimensions.space24,
-            ),
-        verticalArrangement = Arrangement.spacedBy(dimensions.space12),
+                horizontal = dimensions.space20
+            )
+            .padding(top = dimensions.space12, bottom = dimensions.space32)
     ) {
         Text(
             text = title,
             color = titleTextColor,
-            style = MaterialTheme.typography.displaySmall,
+            style = MaterialTheme.typography.labelLarge,
         )
         Text(
             text = moneyFormatter.format(balance),

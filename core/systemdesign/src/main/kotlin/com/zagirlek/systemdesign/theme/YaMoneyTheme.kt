@@ -36,6 +36,11 @@ private val LightColors = lightColorScheme(
 )
 
 private val YaMoneyTypography = Typography(
+    displayLarge = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Bold,
+        fontSize = 45.sp
+    ),
     headlineSmall = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.SemiBold,
