@@ -4,10 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material3.Icon
@@ -36,7 +35,6 @@ import com.zagirlek.transactions.TransactionsScreen
 fun MainScreen(component: MainComponent) {
     val stack by component.childStack.subscribeAsState()
     val selectedTab = stack.active.configuration
-    val dimensions = YaMoneyDesign.dimensions
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -44,7 +42,6 @@ fun MainScreen(component: MainComponent) {
             MainNavigationBar(
                 selectedTab = selectedTab,
                 onTabSelected = component::select,
-                modifier = Modifier.height(dimensions.navigationBarHeight),
             )
         },
     ) { contentPadding ->
@@ -84,9 +81,8 @@ private fun MainNavigationBar(
         NavigationBar(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f),
+                .heightIn(min = dimensions.navigationBarHeight),
             containerColor = YaMoneyDesign.colors.navigationBarContainer,
-            windowInsets = WindowInsets(0, 0, 0, 0),
         ) {
             MainTab.entries.forEach { tab ->
                 NavigationBarItem(
