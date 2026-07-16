@@ -6,7 +6,7 @@ import com.zagirlek.finance.api.account.AccountsRepository
 import java.math.BigDecimal
 
 class FakeAccountsRepository : AccountsRepository {
-    override fun getAccounts(): List<Account> = accounts
+    override suspend fun getAccounts(): List<Account> = accounts
 
     private companion object {
         val accounts = listOf(

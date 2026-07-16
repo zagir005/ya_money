@@ -24,6 +24,8 @@ data class YaMoneyDimensions(
     val listItemMinHeight: Dp = 64.dp,
     val listLeadingSize: Dp = 40.dp,
     val navigationBarHeight: Dp = 80.dp,
+    val navigationDividerThickness: Dp = 1.dp,
+    val navigationIconSize: Dp = 24.dp,
     val navigationItemTouchTarget: Dp = 48.dp,
     val fabSize: Dp = 56.dp,
     val iconSize: Dp = 24.dp,

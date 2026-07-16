@@ -1,11 +1,14 @@
 package com.zagirlek.ya_money.navigation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.TrendingDown
 import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.HorizontalDivider
@@ -20,7 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.zagirlek.systemdesign.theme.YaMoneyDesign
@@ -68,26 +71,44 @@ private fun MainNavigationBar(
     onTabSelected: (MainTab) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier) {
+    val dimensions = YaMoneyDesign.dimensions
+
+    Column(
+        modifier = modifier.background(YaMoneyDesign.colors.navigationBarContainer),
+    ) {
         HorizontalDivider(
-            thickness = 1.dp,
+            thickness = dimensions.navigationDividerThickness,
             color = YaMoneyDesign.colors.navigationDivider,
         )
 
         NavigationBar(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
             containerColor = YaMoneyDesign.colors.navigationBarContainer,
+            windowInsets = WindowInsets(0, 0, 0, 0),
         ) {
             MainTab.entries.forEach { tab ->
                 NavigationBarItem(
                     selected = selectedTab == tab,
                     onClick = { onTabSelected(tab) },
-                    icon = { MainTabIcon(tab) },
-                    label = { Text(stringResource(tab.labelRes)) },
+                    alwaysShowLabel = true,
+                    icon = {
+                        MainTabIcon(
+                            tab = tab,
+                            modifier = Modifier.size(dimensions.navigationIconSize),
+                        )
+                    },
+                    label = {
+                        Text(
+                            text = stringResource(tab.labelRes),
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    },
                     colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        selectedTextColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
+                        indicatorColor = Color.Transparent,
+                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                        selectedTextColor = MaterialTheme.colorScheme.primary,
                         unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     ),
@@ -105,16 +126,25 @@ private val MainTab.labelRes: Int
     }
 
 @Composable
-private fun MainTabIcon(tab: MainTab) {
+private fun MainTabIcon(
+    tab: MainTab,
+    modifier: Modifier = Modifier,
+) {
     when (tab) {
         MainTab.Expenses -> Icon(
             painter = painterResource(CoreUiR.drawable.ic_nav_expense),
             contentDescription = null,
+            modifier = modifier,
         )
-        MainTab.Income -> Icon(Icons.AutoMirrored.Outlined.TrendingUp, contentDescription = null)
+        MainTab.Income -> Icon(
+            imageVector = Icons.AutoMirrored.Outlined.TrendingUp,
+            contentDescription = null,
+            modifier = modifier,
+        )
         MainTab.Accounts -> Icon(
             painter = painterResource(CoreUiR.drawable.ic_nav_account),
             contentDescription = null,
+            modifier = modifier,
         )
     }
 }
