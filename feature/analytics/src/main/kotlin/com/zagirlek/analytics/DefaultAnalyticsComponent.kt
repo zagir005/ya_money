@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import kotlin.coroutines.cancellation.CancellationException
 
 class DefaultAnalyticsComponent(
@@ -57,13 +58,18 @@ class DefaultAnalyticsComponent(
             AnalyticsIntent.RefreshRequested -> loadAnalytics(isRefresh = true)
             AnalyticsIntent.TypeFilterClicked -> showFilterSheet(AnalyticsFilterSheet.Type)
             AnalyticsIntent.PeriodFilterClicked -> showFilterSheet(AnalyticsFilterSheet.Period)
+            AnalyticsIntent.CustomPeriodClicked -> showFilterSheet(AnalyticsFilterSheet.Calendar)
             AnalyticsIntent.CategoryFilterClicked -> showFilterSheet(AnalyticsFilterSheet.Categories)
             AnalyticsIntent.AccountFilterClicked -> showFilterSheet(AnalyticsFilterSheet.Account)
+            AnalyticsIntent.ChartClicked -> mutableEffects.tryEmit(AnalyticsEffect.ShowChartDetails)
             is AnalyticsIntent.TypeApplied -> updateFilters(
                 filters.copy(
                     type = intent.type,
                     categoryIds = emptySet(),
                 ),
+            )
+            is AnalyticsIntent.PeriodPresetApplied -> loadAnalytics(
+                period = intent.preset.toPeriod(LocalDate.now()),
             )
             is AnalyticsIntent.PeriodApplied -> loadAnalytics(period = intent.period)
             is AnalyticsIntent.CategoriesApplied -> updateFilters(filters.copy(categoryIds = intent.categoryIds))

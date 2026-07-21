@@ -12,6 +12,7 @@ import com.zagirlek.ui.mvi.Mutation
 import com.zagirlek.ui.mvi.MviReducer
 import com.zagirlek.ui.mvi.RetryableErrorEffect
 import com.zagirlek.ui.mvi.State
+import java.time.LocalDate
 
 sealed interface AnalyticsState : State {
     data object Loading : AnalyticsState
@@ -44,9 +45,12 @@ sealed interface AnalyticsIntent : Intent {
     data object RefreshRequested : AnalyticsIntent
     data object TypeFilterClicked : AnalyticsIntent
     data object PeriodFilterClicked : AnalyticsIntent
+    data object CustomPeriodClicked : AnalyticsIntent
     data object CategoryFilterClicked : AnalyticsIntent
     data object AccountFilterClicked : AnalyticsIntent
+    data object ChartClicked : AnalyticsIntent
     data class TypeApplied(val type: TransactionType?) : AnalyticsIntent
+    data class PeriodPresetApplied(val preset: AnalyticsPeriodPreset) : AnalyticsIntent
     data class PeriodApplied(val period: TransactionPeriod) : AnalyticsIntent
     data class CategoriesApplied(val categoryIds: Set<Int>) : AnalyticsIntent
     data class AccountApplied(val accountId: AccountId?) : AnalyticsIntent
@@ -84,13 +88,33 @@ sealed interface AnalyticsEffect : Effect {
     ) : AnalyticsEffect, RetryableErrorEffect
 
     data class ShowFilterSheet(val sheet: AnalyticsFilterSheet) : AnalyticsEffect
+
+    data object ShowChartDetails : AnalyticsEffect
 }
 
 enum class AnalyticsFilterSheet {
     Type,
     Period,
+    Calendar,
     Categories,
     Account,
+}
+
+enum class AnalyticsPeriodPreset {
+    Week,
+    Month,
+    Quarter,
+    Year;
+
+    fun toPeriod(endDate: LocalDate): TransactionPeriod = TransactionPeriod(
+        startDate = when (this) {
+            Week -> endDate.minusDays(6)
+            Month -> endDate.minusMonths(1).plusDays(1)
+            Quarter -> endDate.minusMonths(3).plusDays(1)
+            Year -> endDate.minusYears(1).plusDays(1)
+        },
+        endDate = endDate,
+    )
 }
 
 data class AnalyticsFilters(

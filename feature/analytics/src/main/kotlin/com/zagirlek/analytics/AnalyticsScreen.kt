@@ -5,6 +5,7 @@ package com.zagirlek.analytics
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.FormatListBulleted
@@ -52,9 +54,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.zagirlek.analytics.ui.calendar.CalendarBottomSheet
 import com.zagirlek.analytics.ui.chart.AnalyticsDonutChart
+import com.zagirlek.analytics.ui.details.AnalyticsDetailsBottomSheet
+import com.zagirlek.analytics.ui.details.AnalyticsDetailsSummaryUi
 import com.zagirlek.analytics.ui.summary.AnalyticsCategorySummary
 import com.zagirlek.analytics.ui.summary.color
 import com.zagirlek.analytics.ui.summary.toChartSegment
+import com.zagirlek.finance.api.account.AccountId
 import com.zagirlek.finance.api.transaction.TransactionPeriod
 import com.zagirlek.finance.api.transaction.TransactionType
 import com.zagirlek.systemdesign.theme.YaMoneyDesign
@@ -65,6 +70,7 @@ import com.zagirlek.ui.components.elements.RetryableErrorSnackbar
 import com.zagirlek.ui.components.elements.SelectionListItem
 import com.zagirlek.ui.components.elements.SelectionListItemControl
 import com.zagirlek.ui.mvi.RetryableErrorEffect
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.flow.filterIsInstance
 
@@ -72,6 +78,7 @@ import kotlinx.coroutines.flow.filterIsInstance
 fun AnalyticsScreen(component: AnalyticsComponent) {
     val state by component.state.collectAsState()
     var activeSheet by remember { mutableStateOf<AnalyticsFilterSheet?>(null) }
+    var showChartDetails by remember { mutableStateOf(false) }
     val snackbarHostState = RetryableErrorSnackbar(
         effects = component.effects.filterIsInstance<RetryableErrorEffect>(),
         onRetry = { component.accept(AnalyticsIntent.RetryClicked) },
@@ -79,8 +86,13 @@ fun AnalyticsScreen(component: AnalyticsComponent) {
 
     LaunchedEffect(component) {
         component.effects
-            .filterIsInstance<AnalyticsEffect.ShowFilterSheet>()
-            .collect { activeSheet = it.sheet }
+            .collect { effect ->
+                when (effect) {
+                    is AnalyticsEffect.ShowFilterSheet -> activeSheet = effect.sheet
+                    AnalyticsEffect.ShowChartDetails -> showChartDetails = true
+                    is AnalyticsEffect.ShowRetryableError -> Unit
+                }
+            }
     }
 
     AnalyticsContent(
@@ -106,6 +118,16 @@ fun AnalyticsScreen(component: AnalyticsComponent) {
             onIntent = component::accept,
             onDismissRequest = { activeSheet = null },
         )
+        else -> Unit
+    }
+
+    when (val currentState = state) {
+        is AnalyticsState.Content -> if (showChartDetails) {
+            AnalyticsDetailsBottomSheet(
+                summary = currentState.summary.toDetailsSummary(),
+                onDismissRequest = { showChartDetails = false },
+            )
+        }
         else -> Unit
     }
 }
@@ -213,6 +235,10 @@ private fun AnalyticsOverview(
             ) {
                 AnalyticsDonutChart(
                     segments = summary.categories.map(AnalyticsCategorySummary::toChartSegment),
+                    modifier = Modifier.clickable(
+                        enabled = summary.categories.isNotEmpty(),
+                        onClick = { onIntent(AnalyticsIntent.ChartClicked) },
+                    ),
                 ) {
                     if (summary.categories.isEmpty()) {
                         Text(
@@ -276,11 +302,13 @@ private fun AnalyticsLegend(categories: List<AnalyticsCategorySummary>) {
     if (categories.isNotEmpty()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(dimensions.space16),
+            horizontalArrangement = Arrangement.spacedBy(
+                dimensions.space24,
+                Alignment.CenterHorizontally,
+            ),
         ) {
             categories.take(3).forEach { category ->
                 Row(
-                    modifier = Modifier.weight(1f),
                     horizontalArrangement = Arrangement.spacedBy(dimensions.space8),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -313,7 +341,7 @@ private fun AnalyticsFiltersSection(
 
     Column(modifier = Modifier.fillMaxWidth()) {
         AnalyticsFilterRow(
-            icon = Icons.Filled.FormatListBulleted,
+            icon = Icons.AutoMirrored.Filled.FormatListBulleted,
             label = stringResource(R.string.analytics_filter_type),
             value = filters.type.toLabel(),
             onClick = { onIntent(AnalyticsIntent.TypeFilterClicked) },
@@ -468,7 +496,16 @@ private fun AnalyticsFilterSheets(
             },
             onDismissRequest = onDismissRequest,
         )
-        AnalyticsFilterSheet.Period -> CalendarBottomSheet(
+        AnalyticsFilterSheet.Period -> PeriodFilterBottomSheet(
+            period = period,
+            onCustomPeriodSelected = { onIntent(AnalyticsIntent.CustomPeriodClicked) },
+            onPresetSelected = {
+                onIntent(AnalyticsIntent.PeriodPresetApplied(it))
+                onDismissRequest()
+            },
+            onDismissRequest = onDismissRequest,
+        )
+        AnalyticsFilterSheet.Calendar -> CalendarBottomSheet(
             initialStartDate = period.startDate,
             initialEndDate = period.endDate,
             onApply = { startDate, endDate ->
@@ -496,6 +533,41 @@ private fun AnalyticsFilterSheets(
 }
 
 @Composable
+private fun PeriodFilterBottomSheet(
+    period: TransactionPeriod,
+    onCustomPeriodSelected: () -> Unit,
+    onPresetSelected: (AnalyticsPeriodPreset) -> Unit,
+    onDismissRequest: () -> Unit,
+) {
+    val today = LocalDate.now()
+    val selectedPreset = AnalyticsPeriodPreset.entries.firstOrNull { it.toPeriod(today) == period }
+
+    BaseBottomSheet(
+        title = stringResource(R.string.analytics_period_title),
+        onDismissRequest = onDismissRequest,
+    ) {
+        SelectionListItem(
+            title = stringResource(R.string.analytics_period_custom),
+            subtitle = period.format(),
+            control = SelectionListItemControl.Checkmark(selectedPreset == null),
+            onClick = onCustomPeriodSelected,
+        )
+        HorizontalDivider()
+
+        AnalyticsPeriodPreset.entries.forEach { preset ->
+            SelectionListItem(
+                title = preset.label(),
+                control = SelectionListItemControl.Checkmark(selectedPreset == preset),
+                onClick = { onPresetSelected(preset) },
+            )
+            if (preset != AnalyticsPeriodPreset.Year) {
+                HorizontalDivider()
+            }
+        }
+    }
+}
+
+@Composable
 private fun TypeFilterBottomSheet(
     selectedType: TransactionType?,
     onTypeSelected: (TransactionType?) -> Unit,
@@ -503,20 +575,21 @@ private fun TypeFilterBottomSheet(
 ) {
     BaseBottomSheet(
         onDismissRequest = onDismissRequest,
-        title = stringResource(R.string.analytics_type_sheet_title),
     ) {
         SelectionListItem(
             title = stringResource(R.string.analytics_expenses),
             control = SelectionListItemControl.CircularCheckmark(selectedType == TransactionType.Expense),
             onClick = { onTypeSelected(TransactionType.Expense) },
         )
+        HorizontalDivider()
         SelectionListItem(
             title = stringResource(R.string.analytics_income),
             control = SelectionListItemControl.CircularCheckmark(selectedType == TransactionType.Income),
             onClick = { onTypeSelected(TransactionType.Income) },
         )
+        HorizontalDivider()
         SelectionListItem(
-            title = stringResource(R.string.analytics_all_operations),
+            title = stringResource(R.string.analytics_all),
             control = SelectionListItemControl.CircularCheckmark(selectedType == null),
             onClick = { onTypeSelected(null) },
         )
@@ -534,17 +607,30 @@ private fun CategoriesFilterBottomSheet(
         onDismissRequest = onDismissRequest,
         title = stringResource(R.string.analytics_categories_sheet_title),
     ) {
-        options.forEach { option ->
-            SelectionListItem(
-                title = option.name,
-                leadingEmoji = option.emoji,
-                control = SelectionListItemControl.Checkbox(option.id in selectedCategoryIds),
-                onClick = {
-                    onSelectionChanged(
-                        selectedCategoryIds.toggle(option.id),
-                    )
-                },
+        if (options.isEmpty()) {
+            Text(
+                text = stringResource(R.string.analytics_categories_empty),
+                modifier = Modifier.padding(
+                    start = YaMoneyDesign.dimensions.screenHorizontalPadding,
+                    end = YaMoneyDesign.dimensions.screenHorizontalPadding,
+                    bottom = YaMoneyDesign.dimensions.space24,
+                ),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyLarge,
             )
+        } else {
+            options.forEach { option ->
+                SelectionListItem(
+                    title = option.name,
+                    leadingEmoji = option.emoji,
+                    control = SelectionListItemControl.Checkbox(option.id in selectedCategoryIds),
+                    onClick = {
+                        onSelectionChanged(
+                            selectedCategoryIds.toggle(option.id),
+                        )
+                    },
+                )
+            }
         }
     }
 }
@@ -552,8 +638,8 @@ private fun CategoriesFilterBottomSheet(
 @Composable
 private fun AccountFilterBottomSheet(
     options: List<AnalyticsAccountOptionUi>,
-    selectedAccountId: com.zagirlek.finance.api.account.AccountId?,
-    onAccountSelected: (com.zagirlek.finance.api.account.AccountId?) -> Unit,
+    selectedAccountId: AccountId?,
+    onAccountSelected: (AccountId?) -> Unit,
     onDismissRequest: () -> Unit,
 ) {
     BaseBottomSheet(
@@ -590,7 +676,15 @@ private fun AnalyticsStateContent(content: @Composable () -> Unit) {
 private fun TransactionType?.toLabel(): String = when (this) {
     TransactionType.Expense -> stringResource(R.string.analytics_expenses)
     TransactionType.Income -> stringResource(R.string.analytics_income)
-    null -> stringResource(R.string.analytics_all_operations)
+    null -> stringResource(R.string.analytics_all)
+}
+
+@Composable
+private fun AnalyticsPeriodPreset.label(): String = when (this) {
+    AnalyticsPeriodPreset.Week -> stringResource(R.string.analytics_period_week)
+    AnalyticsPeriodPreset.Month -> stringResource(R.string.analytics_period_month)
+    AnalyticsPeriodPreset.Quarter -> stringResource(R.string.analytics_period_quarter)
+    AnalyticsPeriodPreset.Year -> stringResource(R.string.analytics_period_year)
 }
 
 @Composable
@@ -605,7 +699,7 @@ private fun Set<Int>.toCategoriesLabel(categories: List<AnalyticsCategoryOptionU
 }
 
 @Composable
-private fun com.zagirlek.finance.api.account.AccountId?.toAccountLabel(
+private fun AccountId?.toAccountLabel(
     accounts: List<AnalyticsAccountOptionUi>,
 ): String = accounts.firstOrNull { it.id == this }?.name
     ?: stringResource(R.string.analytics_all_accounts)
@@ -616,3 +710,9 @@ private fun Set<Int>.toggle(categoryId: Int): Set<Int> =
     if (categoryId in this) this - categoryId else this + categoryId
 
 private val filterDateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+
+private fun AnalyticsSummaryUi.toDetailsSummary(): AnalyticsDetailsSummaryUi = AnalyticsDetailsSummaryUi(
+    total = total,
+    totalAmount = categories.sumOf(AnalyticsCategorySummary::amount),
+    categories = categories,
+)

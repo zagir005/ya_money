@@ -124,7 +124,7 @@ class DefaultTransactionsComponent(
                     id = income.id.value,
                     lead = income.type.emoji,
                     content = income.description ?: income.type.name,
-                    trail = Money(income.amount, Currency.Ruble).format(moneyFormatter),
+                    trail = Money(income.amount, Currency.Ruble).format(moneyFormatter)
                 )
             },
         )

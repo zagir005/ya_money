@@ -32,9 +32,14 @@ data class YaMoneyDimensions(
     val smallIconSize: Dp = 20.dp,
     val touchTargetMinSize: Dp = 48.dp,
     val analyticsChartDiameter: Dp = 280.dp,
-    val analyticsChartStrokeWidth: Dp = 64.dp,
+    val analyticsChartStrokeWidth: Dp = 32.dp,
     val analyticsCategoryColorSize: Dp = 16.dp,
     val analyticsCategoryProgressHeight: Dp = 12.dp,
+    val analyticsDetailsListMaxHeight: Dp = 360.dp,
+    val calendarDateFieldMinHeight: Dp = 56.dp,
+    val calendarDateFieldBorder: Dp = 1.dp,
+    val calendarActionButtonMinWidth: Dp = 148.dp,
+    val calendarContentMaxHeight: Dp = 560.dp,
 )
 
 internal val LocalYaMoneyDimensions = staticCompositionLocalOf { YaMoneyDimensions() }

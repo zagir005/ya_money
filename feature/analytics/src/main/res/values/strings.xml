@@ -2,7 +2,14 @@
     <string name="analytics_calendar_title">Произвольный период</string>
     <string name="analytics_calendar_cancel">Отмена</string>
     <string name="analytics_calendar_apply">Применить</string>
+    <string name="analytics_period_title">Период</string>
+    <string name="analytics_period_custom">Произвольный</string>
+    <string name="analytics_period_week">За неделю</string>
+    <string name="analytics_period_month">За месяц</string>
+    <string name="analytics_period_quarter">За квартал</string>
+    <string name="analytics_period_year">За год</string>
     <string name="analytics_title">Аналитика</string>
+    <string name="analytics_details_title">Детализация</string>
     <string name="analytics_back">Назад</string>
     <string name="analytics_empty">За выбранный период нет операций.</string>
     <string name="analytics_total_for_period">Всего за период</string>
@@ -11,13 +18,13 @@
     <string name="analytics_filter_period">Период</string>
     <string name="analytics_filter_categories">Статьи</string>
     <string name="analytics_filter_account">Счёт</string>
-    <string name="analytics_all_operations">Все операции</string>
+    <string name="analytics_all">Все</string>
     <string name="analytics_expenses">Расходы</string>
     <string name="analytics_income">Доходы</string>
     <string name="analytics_all_categories">Все статьи</string>
     <string name="analytics_all_accounts">Все счета</string>
     <string name="analytics_transactions">Транзакции</string>
-    <string name="analytics_type_sheet_title">Тип операций</string>
     <string name="analytics_categories_sheet_title">Статьи</string>
+    <string name="analytics_categories_empty">За выбранный период и тип операций статей нет. Измените фильтры и попробуйте снова.</string>
     <string name="analytics_accounts_sheet_title">Счета</string>
 </resources>
