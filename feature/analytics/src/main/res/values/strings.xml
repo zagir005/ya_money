@@ -1,0 +1,5 @@
+<resources>
+    <string name="analytics_calendar_title">Произвольный период</string>
+    <string name="analytics_calendar_cancel">Отмена</string>
+    <string name="analytics_calendar_apply">Применить</string>
+</resources>

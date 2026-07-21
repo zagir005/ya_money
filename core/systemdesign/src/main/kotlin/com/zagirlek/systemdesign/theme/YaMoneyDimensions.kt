@@ -31,6 +31,10 @@ data class YaMoneyDimensions(
     val iconSize: Dp = 24.dp,
     val smallIconSize: Dp = 20.dp,
     val touchTargetMinSize: Dp = 48.dp,
+    val analyticsChartDiameter: Dp = 280.dp,
+    val analyticsChartStrokeWidth: Dp = 64.dp,
+    val analyticsCategoryColorSize: Dp = 16.dp,
+    val analyticsCategoryProgressHeight: Dp = 12.dp,
 )
 
 internal val LocalYaMoneyDimensions = staticCompositionLocalOf { YaMoneyDimensions() }
