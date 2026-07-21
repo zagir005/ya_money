@@ -1,3 +1,16 @@
+import java.util.Properties
+
+val localProperties = Properties().apply {
+    val propertiesFile = rootProject.file("local.properties")
+    if (propertiesFile.exists()) {
+        propertiesFile.inputStream().use(::load)
+    }
+}
+
+val financeApiToken = providers.gradleProperty("financeApiToken")
+    .orElse(providers.environmentVariable("FINANCE_API_TOKEN"))
+    .getOrElse(localProperties.getProperty("financeApiToken", ""))
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -15,7 +28,7 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
-
+        buildConfigField("String", "FINANCE_API_TOKEN", "\"$financeApiToken\"")
     }
 
     buildTypes {
@@ -29,7 +42,9 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
+
 }
 
 dependencies {
