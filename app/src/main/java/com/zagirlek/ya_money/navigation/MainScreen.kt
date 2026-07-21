@@ -55,8 +55,12 @@ fun MainScreen(component: MainComponent) {
                 is MainComponent.Child.Transactions -> TransactionsScreen(
                     type = instance.type,
                     component = instance.component,
+                    onAnalyticsClick = component::openAnalytics,
                 )
-                is MainComponent.Child.Accounts -> AccountsScreen(instance.component)
+                is MainComponent.Child.Accounts -> AccountsScreen(
+                    component = instance.component,
+                    onAnalyticsClick = component::openAnalytics,
+                )
             }
         }
     }

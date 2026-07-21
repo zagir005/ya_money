@@ -26,6 +26,8 @@ interface MainComponent {
 
     fun select(tab: MainTab)
 
+    fun openAnalytics()
+
     sealed interface Child {
         data class Transactions(
             val type: TransactionType,
@@ -40,6 +42,7 @@ class DefaultMainComponent(
     private val accountsRepository: AccountsRepository,
     private val expensesRepository: ExpensesRepository,
     private val incomesRepository: IncomesRepository,
+    private val onAnalyticsRequested: () -> Unit,
 ) : MainComponent, ComponentContext by componentContext {
     private val navigation = StackNavigation<MainTab>()
 
@@ -53,6 +56,10 @@ class DefaultMainComponent(
 
     override fun select(tab: MainTab) {
         navigation.replaceAll(tab)
+    }
+
+    override fun openAnalytics() {
+        onAnalyticsRequested()
     }
 
     private fun createChild(

@@ -28,6 +28,7 @@ import com.zagirlek.ui.components.finance.FinanceScaffold
 fun TransactionsScreen(
     type: TransactionType,
     component: TransactionsComponent,
+    onAnalyticsClick: () -> Unit = {},
 ) {
     val state by component.state.collectAsState()
 
@@ -35,6 +36,7 @@ fun TransactionsScreen(
         type = type,
         state = state,
         onIntent = component::accept,
+        onAnalyticsClick = onAnalyticsClick,
     )
 }
 
@@ -43,12 +45,13 @@ fun TransactionsContent(
     type: TransactionType,
     state: TransactionsState,
     onIntent: (TransactionsIntent) -> Unit,
+    onAnalyticsClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     FinanceScaffold(
         date = stringResource(R.string.example_date),
         onDateClick = { onIntent(TransactionsIntent.DateClicked) },
-        onAnalyticsClick = { onIntent(TransactionsIntent.AnalyticsClicked) },
+        onAnalyticsClick = onAnalyticsClick,
         onSettingsClick = { onIntent(TransactionsIntent.SettingsClicked) },
         onAddClick = { onIntent(TransactionsIntent.AddClicked) },
         modifier = modifier,

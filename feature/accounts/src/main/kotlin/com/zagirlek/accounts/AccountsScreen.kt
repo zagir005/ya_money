@@ -25,12 +25,16 @@ import com.zagirlek.ui.components.finance.FinanceListItem
 import com.zagirlek.ui.components.finance.FinanceScaffold
 
 @Composable
-fun AccountsScreen(component: AccountsComponent) {
+fun AccountsScreen(
+    component: AccountsComponent,
+    onAnalyticsClick: () -> Unit = {},
+) {
     val state by component.state.collectAsState()
 
     AccountsContent(
         state = state,
         onIntent = component::accept,
+        onAnalyticsClick = onAnalyticsClick,
     )
 }
 
@@ -38,12 +42,13 @@ fun AccountsScreen(component: AccountsComponent) {
 fun AccountsContent(
     state: AccountsState,
     onIntent: (AccountsIntent) -> Unit,
+    onAnalyticsClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     FinanceScaffold(
         date = stringResource(R.string.accounts_example_date),
         onDateClick = { onIntent(AccountsIntent.DateClicked) },
-        onAnalyticsClick = { onIntent(AccountsIntent.AnalyticsClicked) },
+        onAnalyticsClick = onAnalyticsClick,
         onSettingsClick = { onIntent(AccountsIntent.SettingsClicked) },
         onAddClick = { onIntent(AccountsIntent.AddClicked) },
         modifier = modifier,

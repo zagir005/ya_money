@@ -8,14 +8,14 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.zagirlek.ya_money.di.AppDependencies
-import com.zagirlek.ya_money.navigation.DefaultMainComponent
-import com.zagirlek.ya_money.navigation.MainScreen
+import com.zagirlek.ya_money.navigation.DefaultRootComponent
+import com.zagirlek.ya_money.navigation.RootScreen
 import com.zagirlek.systemdesign.theme.YaMoneyTheme
 
 class MainActivity : ComponentActivity() {
     private val dependencies = AppDependencies()
-    private val mainComponent by lazy {
-        DefaultMainComponent(
+    private val rootComponent by lazy {
+        DefaultRootComponent(
             componentContext = DefaultComponentContext(LifecycleRegistry()),
             accountsRepository = dependencies.accountsRepository,
             expensesRepository = dependencies.expensesRepository,
@@ -29,7 +29,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             YaMoneyTheme {
-                MainScreen(component = mainComponent)
+                RootScreen(component = rootComponent)
             }
         }
     }
