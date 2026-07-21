@@ -1,5 +1,6 @@
 package com.zagirlek.analytics
 
+import com.zagirlek.analytics.ui.summary.AnalyticsCategorySummary
 import com.zagirlek.finance.api.account.Account
 import com.zagirlek.finance.api.account.AccountId
 import com.zagirlek.finance.api.transaction.TransactionHistoryEntry
@@ -20,6 +21,9 @@ sealed interface AnalyticsState : State {
         val transactions: List<TransactionHistoryEntry>,
         val accounts: List<Account>,
         val filters: AnalyticsFilters,
+        val summary: AnalyticsSummaryUi,
+        val transactionItems: List<AnalyticsTransactionItemUi>,
+        val filterOptions: AnalyticsFilterOptions,
         val isRefreshing: Boolean = false,
     ) : AnalyticsState
 
@@ -27,6 +31,8 @@ sealed interface AnalyticsState : State {
         val period: TransactionPeriod,
         val accounts: List<Account>,
         val filters: AnalyticsFilters,
+        val summary: AnalyticsSummaryUi,
+        val filterOptions: AnalyticsFilterOptions,
     ) : AnalyticsState
 
     data class Error(val message: String) : AnalyticsState
@@ -54,16 +60,20 @@ sealed interface AnalyticsMutation : Mutation {
         val transactions: List<TransactionHistoryEntry>,
         val accounts: List<Account>,
         val filters: AnalyticsFilters,
+        val summary: AnalyticsSummaryUi,
+        val transactionItems: List<AnalyticsTransactionItemUi>,
+        val filterOptions: AnalyticsFilterOptions,
     ) : AnalyticsMutation
 
     data class Empty(
         val period: TransactionPeriod,
         val accounts: List<Account>,
         val filters: AnalyticsFilters,
+        val summary: AnalyticsSummaryUi,
+        val filterOptions: AnalyticsFilterOptions,
     ) : AnalyticsMutation
 
     data class Error(val message: String) : AnalyticsMutation
-    data class FiltersChanged(val filters: AnalyticsFilters) : AnalyticsMutation
     data object Refreshing : AnalyticsMutation
     data class RefreshFailed(val message: String) : AnalyticsMutation
 }
@@ -89,6 +99,36 @@ data class AnalyticsFilters(
     val accountId: AccountId? = null,
 )
 
+data class AnalyticsSummaryUi(
+    val total: String,
+    val categories: List<AnalyticsCategorySummary>,
+)
+
+data class AnalyticsFilterOptions(
+    val categories: List<AnalyticsCategoryOptionUi>,
+    val accounts: List<AnalyticsAccountOptionUi>,
+)
+
+data class AnalyticsCategoryOptionUi(
+    val id: Int,
+    val name: String,
+    val emoji: String,
+)
+
+data class AnalyticsAccountOptionUi(
+    val id: AccountId,
+    val name: String,
+    val emoji: String,
+)
+
+data class AnalyticsTransactionItemUi(
+    val id: String,
+    val title: String,
+    val subtitle: String,
+    val emoji: String,
+    val amount: String,
+)
+
 object AnalyticsReducer : MviReducer<AnalyticsState, AnalyticsMutation> {
     override fun reduce(
         state: AnalyticsState,
@@ -100,18 +140,18 @@ object AnalyticsReducer : MviReducer<AnalyticsState, AnalyticsMutation> {
             transactions = mutation.transactions,
             accounts = mutation.accounts,
             filters = mutation.filters,
+            summary = mutation.summary,
+            transactionItems = mutation.transactionItems,
+            filterOptions = mutation.filterOptions,
         )
         is AnalyticsMutation.Empty -> AnalyticsState.Empty(
             period = mutation.period,
             accounts = mutation.accounts,
             filters = mutation.filters,
+            summary = mutation.summary,
+            filterOptions = mutation.filterOptions,
         )
         is AnalyticsMutation.Error -> AnalyticsState.Error(mutation.message)
-        is AnalyticsMutation.FiltersChanged -> when (state) {
-            is AnalyticsState.Content -> state.copy(filters = mutation.filters)
-            is AnalyticsState.Empty -> state.copy(filters = mutation.filters)
-            else -> state
-        }
         AnalyticsMutation.Refreshing -> (state as? AnalyticsState.Content)?.copy(isRefreshing = true) ?: state
         is AnalyticsMutation.RefreshFailed -> (state as? AnalyticsState.Content)?.copy(isRefreshing = false)
             ?: AnalyticsState.Error(mutation.message)
