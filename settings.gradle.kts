@@ -1,3 +1,5 @@
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+
 pluginManagement {
     repositories {
         google {
@@ -25,6 +27,7 @@ dependencyResolutionManagement {
 rootProject.name = "ya-money"
 include(":app")
 include(":feature:accounts")
+include(":feature:analytics")
 include(":feature:transactions")
 include(":core:ui")
 include(":core:systemdesign")

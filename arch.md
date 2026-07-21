@@ -6,13 +6,14 @@
 
 ## 1. Текущий scope
 
-Первая итерация приложения содержит только три портретных экрана:
+Первая итерация приложения содержит четыре портретных экрана:
 
 1. список расходов;
 2. список доходов;
 3. список счетов.
+4. пустой экран аналитики.
 
-Добавление, редактирование, аналитика, настройки, PIN, биометрия, сеть и Room
+Добавление, редактирование, настройки, PIN, биометрия, сеть и Room
 не входят в текущую реализацию. Архитектура оставляет для них границы, но код
 «на будущее» заранее не создаётся.
 
@@ -42,6 +43,7 @@ flowchart TD
     App[":app"]
     Transactions[":feature:transactions"]
     Accounts[":feature:accounts"]
+    Analytics[":feature:analytics"]
     FinanceApi[":finance:api"]
     FinanceImpl[":finance:impl"]
     Ui[":core:ui"]
@@ -49,6 +51,7 @@ flowchart TD
 
     App --> Transactions
     App --> Accounts
+    App --> Analytics
     App --> FinanceImpl
     App --> SystemDesign
 
@@ -59,6 +62,7 @@ flowchart TD
     Accounts --> FinanceApi
     Accounts --> Ui
     Accounts --> SystemDesign
+
 
     FinanceImpl --> FinanceApi
     Ui --> FinanceApi
@@ -93,9 +97,8 @@ flowchart TD
   репозиториями.
 
 Модуль не зависит от Android SDK, Compose, Decompose, DI-фреймворков, Ktor, Room и
-feature-модулей. Даже если Gradle-модуль временно технически собран как Android
-Library, production-код в нём остаётся чистым Kotlin, чтобы модуль можно было
-перевести на Kotlin/JVM без смены API.
+feature-модулей. Он собран как Kotlin/JVM-модуль: не содержит Android manifest,
+Android-зависимости и инструментальные Android-тесты.
 
 Репозитории группируются по устойчивому предметному контракту, а не по экрану:
 `TransactionsRepository`, `AccountsRepository`, `CategoriesRepository`. Операция,
@@ -172,6 +175,14 @@ Presentation вертикального среза счетов:
 
 Feature может использовать общий stateless layout, но не Component транзакций.
 
+### `:feature:analytics`
+
+Presentation вертикального среза аналитики:
+
+- `AnalyticsComponent` и пустой Compose-экран;
+- feature не получает репозитории, пока аналитика не отображает данные;
+- переход на экран инициирует `RootComponent` из `:app`.
+
 ### Будущие core-модули
 
 `core:common`, `core:network`, `core:database` и `core:security` не создаются
@@ -240,15 +251,25 @@ flowchart LR
 ## 6. Главный экран и навигация
 
 ```text
-MainComponent (ChildStack)
-|-- TransactionsComponent(EXPENSE)
-|-- Income placeholder
-`-- Accounts placeholder
+RootComponent (ChildStack)
+|-- MainComponent (ChildStack)
+|   |-- TransactionsComponent(EXPENSE)
+|   |-- TransactionsComponent(INCOME)
+|   `-- AccountsComponent
+`-- Analytics screen
 ```
 
+`RootComponent` — единственная точка навигации между основным разделом и
+аналитикой. Он создаёт `MainComponent` и `AnalyticsComponent`, а от
+`MainComponent` получает callback для перехода к аналитике. Пустой экран и его
+Component принадлежат `:feature:analytics`; пока feature не имеет состояния и
+не получает репозитории.
+
 `MainComponent` владеет выбранной вкладкой и единственной `MainNavigationBar`.
-Она не дублируется в feature-экранах. На первом этапе используется `ChildStack`:
-он достаточен для статического mock-состояния расходов и пустых вкладок. Когда
+Она не дублируется в feature-экранах. Аналитика запрашивается feature-экранами
+через callback, который `MainComponent` передаёт в `RootComponent`; feature не
+знают о корневой навигации. На первом этапе используется `ChildStack`: он
+достаточен для статического mock-состояния расходов, доходов и счетов. Когда
 вкладки начнут хранить независимые scroll position, дату или фильтры, navigation
 container заменяется на `ChildPages`, сохраняющий дочерние компоненты.
 
@@ -265,7 +286,8 @@ container заменяется на `ChildPages`, сохраняющий доч�
 Пока граф небольшой, используется ручное внедрение зависимостей:
 
 - `AppDependencies` в `:app` создаёт concrete-реализации;
-- `MainActivity` передаёт зависимости в `DefaultMainComponent` через конструктор;
+- `MainActivity` передаёт зависимости в `DefaultRootComponent` через конструктор;
+- `RootComponent` создаёт `MainComponent` и передаёт ему callback навигации;
 - `MainComponent` передаёт repository в `DefaultExpensesComponent` через
   конструктор;
 - MVI Component создаётся на экземпляр экрана, а не как singleton;
