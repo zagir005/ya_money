@@ -17,6 +17,7 @@ abstract class MviComponent<S : State, M : Mutation, I : Intent, R : MviReducer<
 ) : ComponentContext by componentContext {
 
     protected val componentScope = coroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    protected val ioScope = coroutineScope(SupervisorJob() + Dispatchers.IO)
 
     protected fun M.reduce(state: MutableStateFlow<S>) {
         state.update { currentState ->

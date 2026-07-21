@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 
 class DefaultTransactionsComponent(
     componentContext: ComponentContext,
@@ -51,17 +52,21 @@ class DefaultTransactionsComponent(
     private fun loadTransactions() {
         TransactionsMutation.Loading.reduce(mutableState)
 
-        componentScope.launch {
-            val mutation = runCatching {
+        ioScope.launch {
+            val mutation = try {
                 when (type) {
                     TransactionType.Expense -> expensesRepository.getExpenses().toExpensesMutation()
                     TransactionType.Income -> incomesRepository.getIncomes().toIncomesMutation()
                 }
-            }.getOrElse {
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
                 TransactionsMutation.Error
             }
 
-            mutation.reduce(mutableState)
+            componentScope.launch {
+                mutation.reduce(mutableState)
+            }
         }
     }
 

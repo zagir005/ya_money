@@ -366,8 +366,12 @@ fun interface MviReducer<S : State, M : Mutation> {
 }
 ```
 
-`MviComponent` принимает `MviReducer` и `ComponentContext`. Его защищённый
-`reduce(state: MutableStateFlow<S>)` вызывает `MutableStateFlow.update` и
+`MviComponent` принимает `MviReducer` и `ComponentContext`. Он создаёт два
+lifecycle-aware scope: `componentScope` на `Dispatchers.Main.immediate` для
+intent, публикации state и UI-effect, а также `ioScope` на `Dispatchers.IO`
+для сетевых, файловых и database-операций. `ioScope` не изменяет StateFlow
+напрямую: результат возвращается в `componentScope` и только там применяется
+mutation. Его защищённый `reduce(state: MutableStateFlow<S>)` вызывает `MutableStateFlow.update` и
 передаёт reducer текущее значение, полученное внутри атомарного update-блока.
 Конкретный component реализует свой `MviStore`; базовый класс не публикует
 mutable state и не навязывает транспорт effects.
@@ -419,7 +423,7 @@ mutable state, доступный снаружи. Внешнему коду он
 **Reducer** — чистая функция `previous state + mutation -> new state`. Он не
 вызывает suspend-функции, не обращается к repository и не отправляет Effect.
 
-`MviComponent` привязывает scope к lifecycle Decompose; конкретный экранный
+`MviComponent` привязывает оба scope к lifecycle Decompose; конкретный экранный
 component превращает Output в callback родителя. Навигация не является Effect:
 component вызывает callback, а владелец navigation container выполняет переход.
 

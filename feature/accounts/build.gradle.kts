@@ -35,4 +35,6 @@ dependencies {
     implementation(libs.decompose)
     implementation(libs.essenty.lifecycle.coroutines)
     implementation(libs.kotlinx.coroutines.core)
+
+    testImplementation(libs.junit)
 }

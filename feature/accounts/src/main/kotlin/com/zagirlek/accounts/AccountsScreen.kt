@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import com.zagirlek.accounts.R
 import com.zagirlek.systemdesign.theme.YaMoneyDesign
 import com.zagirlek.systemdesign.theme.YaMoneyTheme
@@ -58,6 +59,7 @@ fun AccountsContent(
                 state = state,
                 scaffoldPadding = scaffoldPadding,
                 onAccountClicked = { id -> onIntent(AccountsIntent.AccountClicked(id)) },
+                onRefresh = { onIntent(AccountsIntent.RefreshRequested) },
             )
 
             AccountsState.Loading -> AccountsStateContent(scaffoldPadding) {
@@ -80,29 +82,36 @@ private fun AccountsList(
     state: AccountsState.Content,
     scaffoldPadding: PaddingValues,
     onAccountClicked: (String) -> Unit,
+    onRefresh: () -> Unit,
 ) {
     val dimensions = YaMoneyDesign.dimensions
 
-    LazyColumn(
+    PullToRefreshBox(
+        isRefreshing = state.isRefreshing,
+        onRefresh = onRefresh,
         modifier = Modifier
             .fillMaxSize()
             .padding(scaffoldPadding),
-        contentPadding = PaddingValues(bottom = dimensions.fabSize + dimensions.space32),
-        verticalArrangement = Arrangement.spacedBy(dimensions.space4),
     ) {
-        item {
-            BalanceCard(
-                title = stringResource(R.string.accounts_summary_title),
-                balance = state.total,
-            )
-        }
-        items(items = state.items, key = AccountItemUi::id) { item ->
-            FinanceListItem(
-                lead = item.lead,
-                content = item.content,
-                trail = item.trail,
-                onClick = { onAccountClicked(item.id) },
-            )
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = dimensions.fabSize + dimensions.space32),
+            verticalArrangement = Arrangement.spacedBy(dimensions.space4),
+        ) {
+            item {
+                BalanceCard(
+                    title = stringResource(R.string.accounts_summary_title),
+                    balance = state.total,
+                )
+            }
+            items(items = state.items, key = AccountItemUi::id) { item ->
+                FinanceListItem(
+                    lead = item.lead,
+                    content = item.content,
+                    trail = item.trail,
+                    onClick = { onAccountClicked(item.id) },
+                )
+            }
         }
     }
 }

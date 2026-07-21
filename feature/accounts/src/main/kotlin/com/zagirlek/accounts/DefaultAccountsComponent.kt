@@ -13,7 +13,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 
 class DefaultAccountsComponent(
     componentContext: ComponentContext,
@@ -29,6 +31,8 @@ class DefaultAccountsComponent(
     override val state: StateFlow<AccountsState> = mutableState.asStateFlow()
     override val effects: Flow<AccountsEffect> = emptyFlow()
 
+    private var loadJob: Job? = null
+
     init {
         loadAccounts()
     }
@@ -41,20 +45,31 @@ class DefaultAccountsComponent(
             AccountsIntent.SettingsClicked -> Unit
             AccountsIntent.AddClicked -> Unit
             AccountsIntent.RetryClicked -> loadAccounts()
+            AccountsIntent.RefreshRequested -> loadAccounts(isRefresh = true)
         }
     }
 
-    private fun loadAccounts() {
-        AccountsMutation.Loading.reduce(mutableState)
+    private fun loadAccounts(isRefresh: Boolean = false) {
+        if (loadJob?.isActive == true) return
 
-        componentScope.launch {
-            val mutation = runCatching {
+        if (isRefresh && mutableState.value is AccountsState.Content) {
+            AccountsMutation.Refreshing.reduce(mutableState)
+        } else {
+            AccountsMutation.Loading.reduce(mutableState)
+        }
+
+        loadJob = ioScope.launch {
+            val mutation = try {
                 accountsRepository.getAccounts().toMutation()
-            }.getOrElse {
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
                 AccountsMutation.Error
             }
 
-            mutation.reduce(mutableState)
+            componentScope.launch {
+                mutation.reduce(mutableState)
+            }
         }
     }
 

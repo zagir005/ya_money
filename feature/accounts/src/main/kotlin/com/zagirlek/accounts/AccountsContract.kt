@@ -21,6 +21,7 @@ sealed interface AccountsState : State {
     data class Content(
         val total: String,
         val items: List<AccountItemUi>,
+        val isRefreshing: Boolean = false,
     ) : AccountsState
 }
 
@@ -31,12 +32,14 @@ sealed interface AccountsIntent : Intent {
     data object SettingsClicked : AccountsIntent
     data object AddClicked : AccountsIntent
     data object RetryClicked : AccountsIntent
+    data object RefreshRequested : AccountsIntent
 }
 
 sealed interface AccountsMutation : Mutation {
     data object Loading : AccountsMutation
     data object Empty : AccountsMutation
     data object Error : AccountsMutation
+    data object Refreshing : AccountsMutation
 
     data class Content(
         val total: String,
@@ -54,6 +57,7 @@ object AccountsReducer : MviReducer<AccountsState, AccountsMutation> {
         AccountsMutation.Loading -> AccountsState.Loading
         AccountsMutation.Empty -> AccountsState.Empty
         AccountsMutation.Error -> AccountsState.Error
+        AccountsMutation.Refreshing -> (state as? AccountsState.Content)?.copy(isRefreshing = true) ?: state
         is AccountsMutation.Content -> AccountsState.Content(
             total = mutation.total,
             items = mutation.items,
