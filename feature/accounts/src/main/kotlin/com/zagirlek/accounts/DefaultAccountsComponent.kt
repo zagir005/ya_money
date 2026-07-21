@@ -9,10 +9,11 @@ import com.zagirlek.ui.formatter.DefaultMoneyFormatter
 import com.zagirlek.ui.formatter.Money
 import com.zagirlek.ui.formatter.MoneyFormatter
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
@@ -29,7 +30,9 @@ class DefaultAccountsComponent(
     private val mutableState = MutableStateFlow<AccountsState>(AccountsState.Loading)
 
     override val state: StateFlow<AccountsState> = mutableState.asStateFlow()
-    override val effects: Flow<AccountsEffect> = emptyFlow()
+    private val mutableEffects = MutableSharedFlow<AccountsEffect>(extraBufferCapacity = 1)
+
+    override val effects: Flow<AccountsEffect> = mutableEffects.asSharedFlow()
 
     private var loadJob: Job? = null
 
@@ -52,7 +55,8 @@ class DefaultAccountsComponent(
     private fun loadAccounts(isRefresh: Boolean = false) {
         if (loadJob?.isActive == true) return
 
-        if (isRefresh && mutableState.value is AccountsState.Content) {
+        val isContentRefresh = isRefresh && mutableState.value is AccountsState.Content
+        if (isContentRefresh) {
             AccountsMutation.Refreshing.reduce(mutableState)
         } else {
             AccountsMutation.Loading.reduce(mutableState)
@@ -64,10 +68,13 @@ class DefaultAccountsComponent(
             } catch (error: CancellationException) {
                 throw error
             } catch (_: Exception) {
-                AccountsMutation.Error
+                if (isContentRefresh) AccountsMutation.RefreshFailed else AccountsMutation.Error
             }
 
             componentScope.launch {
+                if (mutation == AccountsMutation.RefreshFailed) {
+                    mutableEffects.tryEmit(AccountsEffect.ShowRetryableError)
+                }
                 mutation.reduce(mutableState)
             }
         }

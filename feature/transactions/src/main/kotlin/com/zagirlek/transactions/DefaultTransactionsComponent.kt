@@ -11,10 +11,11 @@ import com.zagirlek.ui.formatter.DefaultMoneyFormatter
 import com.zagirlek.ui.formatter.Money
 import com.zagirlek.ui.formatter.MoneyFormatter
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -32,7 +33,9 @@ class DefaultTransactionsComponent(
     private val mutableState = MutableStateFlow<TransactionsState>(TransactionsState.Loading)
 
     override val state: StateFlow<TransactionsState> = mutableState.asStateFlow()
-    override val effects: Flow<TransactionsEffect> = emptyFlow()
+    private val mutableEffects = MutableSharedFlow<TransactionsEffect>(extraBufferCapacity = 1)
+
+    override val effects: Flow<TransactionsEffect> = mutableEffects.asSharedFlow()
 
     init {
         loadTransactions()
@@ -65,6 +68,9 @@ class DefaultTransactionsComponent(
             }
 
             componentScope.launch {
+                if (mutation == TransactionsMutation.Error) {
+                    mutableEffects.tryEmit(TransactionsEffect.ShowRetryableError)
+                }
                 mutation.reduce(mutableState)
             }
         }

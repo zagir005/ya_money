@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -21,9 +22,12 @@ import com.zagirlek.systemdesign.theme.YaMoneyTheme
 import com.zagirlek.ui.components.elements.CenteredMessage
 import com.zagirlek.ui.components.elements.ErrorContent
 import com.zagirlek.ui.components.elements.LoadingContent
+import com.zagirlek.ui.components.elements.RetryableErrorSnackbar
 import com.zagirlek.ui.components.finance.BalanceCard
 import com.zagirlek.ui.components.finance.FinanceListItem
 import com.zagirlek.ui.components.finance.FinanceScaffold
+import com.zagirlek.ui.mvi.RetryableErrorEffect
+import kotlinx.coroutines.flow.filterIsInstance
 
 @Composable
 fun AccountsScreen(
@@ -31,11 +35,16 @@ fun AccountsScreen(
     onAnalyticsClick: () -> Unit = {},
 ) {
     val state by component.state.collectAsState()
+    val snackbarHostState = RetryableErrorSnackbar(
+        effects = component.effects.filterIsInstance<RetryableErrorEffect>(),
+        onRetry = { component.accept(AccountsIntent.RetryClicked) },
+    )
 
     AccountsContent(
         state = state,
         onIntent = component::accept,
         onAnalyticsClick = onAnalyticsClick,
+        snackbarHostState = snackbarHostState,
     )
 }
 
@@ -44,6 +53,7 @@ fun AccountsContent(
     state: AccountsState,
     onIntent: (AccountsIntent) -> Unit,
     onAnalyticsClick: () -> Unit = {},
+    snackbarHostState: SnackbarHostState? = null,
     modifier: Modifier = Modifier,
 ) {
     FinanceScaffold(
@@ -52,6 +62,7 @@ fun AccountsContent(
         onAnalyticsClick = onAnalyticsClick,
         onSettingsClick = { onIntent(AccountsIntent.SettingsClicked) },
         onAddClick = { onIntent(AccountsIntent.AddClicked) },
+        snackbarHostState = snackbarHostState,
         modifier = modifier,
     ) { scaffoldPadding ->
         when (state) {

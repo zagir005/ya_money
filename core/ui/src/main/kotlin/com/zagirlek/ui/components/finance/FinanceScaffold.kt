@@ -8,6 +8,8 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -21,6 +23,7 @@ fun FinanceScaffold(
     onAnalyticsClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onAddClick: () -> Unit,
+    snackbarHostState: SnackbarHostState? = null,
     modifier: Modifier = Modifier,
     content: @Composable (PaddingValues) -> Unit,
 ) {
@@ -49,6 +52,9 @@ fun FinanceScaffold(
                     contentDescription = stringResource(R.string.finance_add_content_description),
                 )
             }
+        },
+        snackbarHost = {
+            snackbarHostState?.let { SnackbarHost(hostState = it) }
         },
     ) { contentPadding -> content(contentPadding) }
 }

@@ -32,4 +32,15 @@ class AccountsReducerTest {
             AccountsReducer.reduce(content, AccountsMutation.Error),
         )
     }
+
+    @Test
+    fun `refresh error keeps current content and hides indicator`() {
+        assertEquals(
+            content,
+            AccountsReducer.reduce(
+                content.copy(isRefreshing = true),
+                AccountsMutation.RefreshFailed,
+            ),
+        )
+    }
 }

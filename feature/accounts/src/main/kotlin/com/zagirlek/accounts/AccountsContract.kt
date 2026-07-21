@@ -4,6 +4,7 @@ import com.zagirlek.ui.mvi.Effect
 import com.zagirlek.ui.mvi.Intent
 import com.zagirlek.ui.mvi.Mutation
 import com.zagirlek.ui.mvi.MviReducer
+import com.zagirlek.ui.mvi.RetryableErrorEffect
 import com.zagirlek.ui.mvi.State
 
 data class AccountItemUi(
@@ -40,6 +41,7 @@ sealed interface AccountsMutation : Mutation {
     data object Empty : AccountsMutation
     data object Error : AccountsMutation
     data object Refreshing : AccountsMutation
+    data object RefreshFailed : AccountsMutation
 
     data class Content(
         val total: String,
@@ -47,7 +49,9 @@ sealed interface AccountsMutation : Mutation {
     ) : AccountsMutation
 }
 
-sealed interface AccountsEffect : Effect
+sealed interface AccountsEffect : Effect {
+    data object ShowRetryableError : AccountsEffect, RetryableErrorEffect
+}
 
 object AccountsReducer : MviReducer<AccountsState, AccountsMutation> {
     override fun reduce(
@@ -58,6 +62,8 @@ object AccountsReducer : MviReducer<AccountsState, AccountsMutation> {
         AccountsMutation.Empty -> AccountsState.Empty
         AccountsMutation.Error -> AccountsState.Error
         AccountsMutation.Refreshing -> (state as? AccountsState.Content)?.copy(isRefreshing = true) ?: state
+        AccountsMutation.RefreshFailed -> (state as? AccountsState.Content)?.copy(isRefreshing = false)
+            ?: AccountsState.Error
         is AccountsMutation.Content -> AccountsState.Content(
             total = mutation.total,
             items = mutation.items,
