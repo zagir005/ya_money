@@ -14,7 +14,10 @@ import com.zagirlek.systemdesign.theme.YaMoneyDesign
 import com.zagirlek.ui.R
 
 @Composable
-fun ErrorContent(onRetryClicked: () -> Unit) {
+fun ErrorContent(
+    message: String,
+    onRetryClicked: () -> Unit,
+) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
@@ -23,7 +26,7 @@ fun ErrorContent(onRetryClicked: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(YaMoneyDesign.dimensions.space12),
         ) {
-            Text(text = stringResource(R.string.error_while_loading))
+            Text(text = message)
             Button(onClick = onRetryClicked) {
                 Text(text = stringResource(R.string.retry))
             }

@@ -22,6 +22,7 @@ data class Income(
     val accountId: AccountId,
     val type: IncomeType,
     val amount: BigDecimal,
+    val occurredAt: Instant,
     val occurredOn: LocalDate,
     val createdAt: Instant,
     val description: String?,

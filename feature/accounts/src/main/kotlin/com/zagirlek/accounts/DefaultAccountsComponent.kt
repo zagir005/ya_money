@@ -67,13 +67,17 @@ class DefaultAccountsComponent(
                 accountsRepository.getAccounts().toMutation()
             } catch (error: CancellationException) {
                 throw error
-            } catch (_: Exception) {
-                if (isContentRefresh) AccountsMutation.RefreshFailed else AccountsMutation.Error
+            } catch (error: Exception) {
+                if (isContentRefresh) {
+                    AccountsMutation.RefreshFailed(error.toErrorMessage())
+                } else {
+                    AccountsMutation.Error(error.toErrorMessage())
+                }
             }
 
             componentScope.launch {
-                if (mutation == AccountsMutation.RefreshFailed) {
-                    mutableEffects.tryEmit(AccountsEffect.ShowRetryableError)
+                if (mutation is AccountsMutation.RefreshFailed) {
+                    mutableEffects.tryEmit(AccountsEffect.ShowRetryableError(mutation.message))
                 }
                 mutation.reduce(mutableState)
             }
@@ -93,5 +97,11 @@ class DefaultAccountsComponent(
                 )
             },
         )
+    }
+
+    private fun Exception.toErrorMessage(): String = message ?: DEFAULT_ERROR_MESSAGE
+
+    private companion object {
+        const val DEFAULT_ERROR_MESSAGE = "Не удалось загрузить счета."
     }
 }

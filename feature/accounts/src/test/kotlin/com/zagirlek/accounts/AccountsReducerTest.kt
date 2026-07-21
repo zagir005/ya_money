@@ -28,8 +28,8 @@ class AccountsReducerTest {
     @Test
     fun `loading error switches screen to error state`() {
         assertEquals(
-            AccountsState.Error,
-            AccountsReducer.reduce(content, AccountsMutation.Error),
+            AccountsState.Error("Ошибка сети"),
+            AccountsReducer.reduce(content, AccountsMutation.Error("Ошибка сети")),
         )
     }
 

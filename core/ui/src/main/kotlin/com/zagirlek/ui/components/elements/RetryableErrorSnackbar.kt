@@ -19,13 +19,12 @@ fun RetryableErrorSnackbar(
 ): SnackbarHostState {
     val snackbarHostState = remember { SnackbarHostState() }
     val latestOnRetry = rememberUpdatedState(onRetry)
-    val errorMessage = stringResource(R.string.error_while_loading)
     val retryLabel = stringResource(R.string.retry)
 
     LaunchedEffect(effects) {
-        effects.collect {
+        effects.collect { effect ->
             val result = snackbarHostState.showSnackbar(
-                message = errorMessage,
+                message = effect.message,
                 actionLabel = retryLabel,
             )
             if (result == SnackbarResult.ActionPerformed) {

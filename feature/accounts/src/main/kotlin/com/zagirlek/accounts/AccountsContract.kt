@@ -17,7 +17,7 @@ data class AccountItemUi(
 sealed interface AccountsState : State {
     data object Loading : AccountsState
     data object Empty : AccountsState
-    data object Error : AccountsState
+    data class Error(val message: String) : AccountsState
 
     data class Content(
         val total: String,
@@ -39,9 +39,9 @@ sealed interface AccountsIntent : Intent {
 sealed interface AccountsMutation : Mutation {
     data object Loading : AccountsMutation
     data object Empty : AccountsMutation
-    data object Error : AccountsMutation
+    data class Error(val message: String) : AccountsMutation
     data object Refreshing : AccountsMutation
-    data object RefreshFailed : AccountsMutation
+    data class RefreshFailed(val message: String) : AccountsMutation
 
     data class Content(
         val total: String,
@@ -50,7 +50,9 @@ sealed interface AccountsMutation : Mutation {
 }
 
 sealed interface AccountsEffect : Effect {
-    data object ShowRetryableError : AccountsEffect, RetryableErrorEffect
+    data class ShowRetryableError(
+        override val message: String,
+    ) : AccountsEffect, RetryableErrorEffect
 }
 
 object AccountsReducer : MviReducer<AccountsState, AccountsMutation> {
@@ -60,10 +62,10 @@ object AccountsReducer : MviReducer<AccountsState, AccountsMutation> {
     ): AccountsState = when (mutation) {
         AccountsMutation.Loading -> AccountsState.Loading
         AccountsMutation.Empty -> AccountsState.Empty
-        AccountsMutation.Error -> AccountsState.Error
+        is AccountsMutation.Error -> AccountsState.Error(mutation.message)
         AccountsMutation.Refreshing -> (state as? AccountsState.Content)?.copy(isRefreshing = true) ?: state
-        AccountsMutation.RefreshFailed -> (state as? AccountsState.Content)?.copy(isRefreshing = false)
-            ?: AccountsState.Error
+        is AccountsMutation.RefreshFailed -> (state as? AccountsState.Content)?.copy(isRefreshing = false)
+            ?: AccountsState.Error(mutation.message)
         is AccountsMutation.Content -> AccountsState.Content(
             total = mutation.total,
             items = mutation.items,

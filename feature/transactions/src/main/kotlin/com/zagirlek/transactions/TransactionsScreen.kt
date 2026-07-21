@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -75,6 +76,7 @@ fun TransactionsContent(
                 onTransactionClicked = { id ->
                     onIntent(TransactionsIntent.TransactionClicked(id))
                 },
+                onRefresh = { onIntent(TransactionsIntent.RefreshRequested) },
             )
 
             TransactionsState.Loading -> FinanceStateContent(scaffoldPadding) {
@@ -85,8 +87,11 @@ fun TransactionsContent(
                 CenteredMessage(stringResource(type.emptyMessageRes))
             }
 
-            TransactionsState.Error -> FinanceStateContent(scaffoldPadding) {
-                ErrorContent(onRetryClicked = { onIntent(TransactionsIntent.RetryClicked) })
+            is TransactionsState.Error -> FinanceStateContent(scaffoldPadding) {
+                ErrorContent(
+                    message = state.message,
+                    onRetryClicked = { onIntent(TransactionsIntent.RetryClicked) },
+                )
             }
         }
     }
@@ -98,29 +103,36 @@ private fun TransactionsList(
     summaryTitle: String,
     scaffoldPadding: PaddingValues,
     onTransactionClicked: (String) -> Unit,
+    onRefresh: () -> Unit,
 ) {
     val dimensions = YaMoneyDesign.dimensions
 
-    LazyColumn(
+    PullToRefreshBox(
+        isRefreshing = state.isRefreshing,
+        onRefresh = onRefresh,
         modifier = Modifier
             .fillMaxSize()
             .padding(scaffoldPadding),
-        contentPadding = PaddingValues(bottom = dimensions.fabSize + dimensions.space32),
-        verticalArrangement = Arrangement.spacedBy(dimensions.space4),
     ) {
-        item {
-            BalanceCard(
-                title = summaryTitle,
-                balance = state.total,
-            )
-        }
-        items(items = state.items, key = TransactionItemUi::id) { item ->
-            FinanceListItem(
-                lead = item.lead,
-                content = item.content,
-                trail = item.trail,
-                onClick = { onTransactionClicked(item.id) },
-            )
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = dimensions.fabSize + dimensions.space32),
+            verticalArrangement = Arrangement.spacedBy(dimensions.space4),
+        ) {
+            item {
+                BalanceCard(
+                    title = summaryTitle,
+                    balance = state.total,
+                )
+            }
+            items(items = state.items, key = TransactionItemUi::id) { item ->
+                FinanceListItem(
+                    lead = item.lead,
+                    content = item.content,
+                    trail = item.trail,
+                    onClick = { onTransactionClicked(item.id) },
+                )
+            }
         }
     }
 }
@@ -226,7 +238,7 @@ private fun TransactionsErrorPreview() {
     YaMoneyTheme {
         TransactionsContent(
             type = TransactionType.Expense,
-            state = TransactionsState.Error,
+            state = TransactionsState.Error("Не удалось загрузить операции."),
             onIntent = {},
         )
     }

@@ -1,3 +1,5 @@
 package com.zagirlek.ui.mvi
 
-interface RetryableErrorEffect : Effect
+interface RetryableErrorEffect : Effect {
+    val message: String
+}

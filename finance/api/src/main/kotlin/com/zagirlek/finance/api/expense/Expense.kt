@@ -22,6 +22,7 @@ data class Expense(
     val accountId: AccountId,
     val type: ExpenseType,
     val amount: BigDecimal,
+    val occurredAt: Instant,
     val occurredOn: LocalDate,
     val createdAt: Instant,
     val description: String?,

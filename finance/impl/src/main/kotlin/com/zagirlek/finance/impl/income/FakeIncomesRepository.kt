@@ -6,12 +6,15 @@ import com.zagirlek.finance.api.income.IncomeId
 import com.zagirlek.finance.api.income.IncomeType
 import com.zagirlek.finance.api.income.IncomeTypeId
 import com.zagirlek.finance.api.income.IncomesRepository
+import com.zagirlek.finance.api.transaction.TransactionPeriod
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 
 class FakeIncomesRepository : IncomesRepository {
-    override suspend fun getIncomes(): List<Income> = incomes
+    override suspend fun getIncomes(period: TransactionPeriod): List<Income> = incomes.filter {
+        it.occurredOn in period.startDate..period.endDate
+    }
 
     private companion object {
         val incomes = listOf(
@@ -20,6 +23,7 @@ class FakeIncomesRepository : IncomesRepository {
                 accountId = AccountId("account-main"),
                 type = IncomeType(IncomeTypeId("salary"), "Зарплата", "💼"),
                 amount = BigDecimal("120000.00"),
+                occurredAt = Instant.parse("2026-07-10T07:00:00Z"),
                 occurredOn = LocalDate.of(2026, 7, 10),
                 createdAt = Instant.parse("2026-07-10T07:00:00Z"),
                 description = "Зарплата за июль",
@@ -29,6 +33,7 @@ class FakeIncomesRepository : IncomesRepository {
                 accountId = AccountId("account-main"),
                 type = IncomeType(IncomeTypeId("cashback"), "Кэшбэк", "✨"),
                 amount = BigDecimal("385.42"),
+                occurredAt = Instant.parse("2026-07-12T09:15:30Z"),
                 occurredOn = LocalDate.of(2026, 7, 12),
                 createdAt = Instant.parse("2026-07-12T09:15:00Z"),
                 description = "Кэшбэк за покупки",

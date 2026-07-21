@@ -17,11 +17,12 @@ data class TransactionItemUi(
 sealed interface TransactionsState : State {
     data object Loading : TransactionsState
     data object Empty : TransactionsState
-    data object Error : TransactionsState
+    data class Error(val message: String) : TransactionsState
 
     data class Content(
         val total: String,
         val items: List<TransactionItemUi>,
+        val isRefreshing: Boolean = false,
     ) : TransactionsState
 }
 
@@ -32,12 +33,15 @@ sealed interface TransactionsIntent : Intent {
     data object SettingsClicked : TransactionsIntent
     data object AddClicked : TransactionsIntent
     data object RetryClicked : TransactionsIntent
+    data object RefreshRequested : TransactionsIntent
 }
 
 sealed interface TransactionsMutation : Mutation {
     data object Loading : TransactionsMutation
     data object Empty : TransactionsMutation
-    data object Error : TransactionsMutation
+    data class Error(val message: String) : TransactionsMutation
+    data object Refreshing : TransactionsMutation
+    data class RefreshFailed(val message: String) : TransactionsMutation
 
     data class Content(
         val total: String,
@@ -46,7 +50,9 @@ sealed interface TransactionsMutation : Mutation {
 }
 
 sealed interface TransactionsEffect : Effect {
-    data object ShowRetryableError : TransactionsEffect, RetryableErrorEffect
+    data class ShowRetryableError(
+        override val message: String,
+    ) : TransactionsEffect, RetryableErrorEffect
 }
 
 object TransactionsReducer : MviReducer<TransactionsState, TransactionsMutation> {
@@ -56,7 +62,10 @@ object TransactionsReducer : MviReducer<TransactionsState, TransactionsMutation>
     ): TransactionsState = when (mutation) {
         TransactionsMutation.Loading -> TransactionsState.Loading
         TransactionsMutation.Empty -> TransactionsState.Empty
-        TransactionsMutation.Error -> TransactionsState.Error
+        is TransactionsMutation.Error -> TransactionsState.Error(mutation.message)
+        TransactionsMutation.Refreshing -> (state as? TransactionsState.Content)?.copy(isRefreshing = true) ?: state
+        is TransactionsMutation.RefreshFailed -> (state as? TransactionsState.Content)?.copy(isRefreshing = false)
+            ?: TransactionsState.Error(mutation.message)
         is TransactionsMutation.Content -> TransactionsState.Content(
             total = mutation.total,
             items = mutation.items,

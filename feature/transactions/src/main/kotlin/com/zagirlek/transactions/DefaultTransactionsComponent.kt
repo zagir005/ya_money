@@ -5,6 +5,7 @@ import com.zagirlek.finance.api.expense.Expense
 import com.zagirlek.finance.api.expense.ExpensesRepository
 import com.zagirlek.finance.api.income.Income
 import com.zagirlek.finance.api.income.IncomesRepository
+import com.zagirlek.finance.api.transaction.TransactionPeriod
 import com.zagirlek.ui.cmp.MviComponent
 import com.zagirlek.ui.formatter.Currency
 import com.zagirlek.ui.formatter.DefaultMoneyFormatter
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -37,6 +39,9 @@ class DefaultTransactionsComponent(
 
     override val effects: Flow<TransactionsEffect> = mutableEffects.asSharedFlow()
 
+    private val period = TransactionPeriod.currentMonthToDate()
+    private var loadJob: Job? = null
+
     init {
         loadTransactions()
     }
@@ -49,27 +54,46 @@ class DefaultTransactionsComponent(
             TransactionsIntent.SettingsClicked -> Unit
             TransactionsIntent.AddClicked -> Unit
             TransactionsIntent.RetryClicked -> loadTransactions()
+            TransactionsIntent.RefreshRequested -> loadTransactions(isRefresh = true)
         }
     }
 
-    private fun loadTransactions() {
-        TransactionsMutation.Loading.reduce(mutableState)
+    private fun loadTransactions(isRefresh: Boolean = false) {
+        if (loadJob?.isActive == true) return
 
-        ioScope.launch {
+        val isContentRefresh = isRefresh && mutableState.value is TransactionsState.Content
+        if (isContentRefresh) {
+            TransactionsMutation.Refreshing.reduce(mutableState)
+        } else {
+            TransactionsMutation.Loading.reduce(mutableState)
+        }
+
+        loadJob = ioScope.launch {
             val mutation = try {
                 when (type) {
-                    TransactionType.Expense -> expensesRepository.getExpenses().toExpensesMutation()
-                    TransactionType.Income -> incomesRepository.getIncomes().toIncomesMutation()
+                    TransactionType.Expense -> expensesRepository.getExpenses(period)
+                        .sortedByDescending(Expense::occurredAt)
+                        .toExpensesMutation()
+                    TransactionType.Income -> incomesRepository.getIncomes(period)
+                        .sortedByDescending(Income::occurredAt)
+                        .toIncomesMutation()
                 }
             } catch (error: CancellationException) {
                 throw error
-            } catch (_: Exception) {
-                TransactionsMutation.Error
+            } catch (error: Exception) {
+                if (isContentRefresh) {
+                    TransactionsMutation.RefreshFailed(error.toErrorMessage())
+                } else {
+                    TransactionsMutation.Error(error.toErrorMessage())
+                }
             }
 
             componentScope.launch {
-                if (mutation == TransactionsMutation.Error) {
-                    mutableEffects.tryEmit(TransactionsEffect.ShowRetryableError)
+                if (mutation is TransactionsMutation.Error) {
+                    mutableEffects.tryEmit(TransactionsEffect.ShowRetryableError(mutation.message))
+                }
+                if (mutation is TransactionsMutation.RefreshFailed) {
+                    mutableEffects.tryEmit(TransactionsEffect.ShowRetryableError(mutation.message))
                 }
                 mutation.reduce(mutableState)
             }
@@ -104,5 +128,11 @@ class DefaultTransactionsComponent(
                 )
             },
         )
+    }
+
+    private fun Exception.toErrorMessage(): String = message ?: DEFAULT_ERROR_MESSAGE
+
+    private companion object {
+        const val DEFAULT_ERROR_MESSAGE = "Не удалось загрузить операции."
     }
 }

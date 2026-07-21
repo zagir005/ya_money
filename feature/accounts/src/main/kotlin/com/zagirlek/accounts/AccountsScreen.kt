@@ -81,8 +81,11 @@ fun AccountsContent(
                 CenteredMessage(stringResource(R.string.accounts_empty))
             }
 
-            AccountsState.Error -> AccountsStateContent(scaffoldPadding) {
-                ErrorContent(onRetryClicked = { onIntent(AccountsIntent.RetryClicked) })
+            is AccountsState.Error -> AccountsStateContent(scaffoldPadding) {
+                ErrorContent(
+                    message = state.message,
+                    onRetryClicked = { onIntent(AccountsIntent.RetryClicked) },
+                )
             }
         }
     }
@@ -196,7 +199,7 @@ private fun AccountsEmptyPreview() {
 private fun AccountsErrorPreview() {
     YaMoneyTheme {
         AccountsContent(
-            state = AccountsState.Error,
+            state = AccountsState.Error("Не удалось загрузить счета."),
             onIntent = {},
         )
     }

@@ -4,8 +4,8 @@ import com.zagirlek.finance.impl.account.remote.RemoteAccountsRepository
 import com.zagirlek.finance.api.account.AccountsRepository
 import com.zagirlek.finance.api.expense.ExpensesRepository
 import com.zagirlek.finance.api.income.IncomesRepository
-import com.zagirlek.finance.impl.expense.FakeExpensesRepository
-import com.zagirlek.finance.impl.income.FakeIncomesRepository
+import com.zagirlek.finance.impl.expense.remote.RemoteExpensesRepository
+import com.zagirlek.finance.impl.income.remote.RemoteIncomesRepository
 import com.zagirlek.finance.impl.network.FinanceHttpClient
 import com.zagirlek.ya_money.BuildConfig
 
@@ -13,6 +13,12 @@ class AppDependencies {
     private val financeHttpClient = FinanceHttpClient(BuildConfig.FINANCE_API_TOKEN)
 
     val accountsRepository: AccountsRepository = RemoteAccountsRepository(financeHttpClient)
-    val expensesRepository: ExpensesRepository = FakeExpensesRepository()
-    val incomesRepository: IncomesRepository = FakeIncomesRepository()
+    val expensesRepository: ExpensesRepository = RemoteExpensesRepository(
+        accountsRepository = accountsRepository,
+        httpClient = financeHttpClient,
+    )
+    val incomesRepository: IncomesRepository = RemoteIncomesRepository(
+        accountsRepository = accountsRepository,
+        httpClient = financeHttpClient,
+    )
 }
