@@ -1,7 +1,6 @@
 package com.zagirlek.analytics.ui.summary
 
 import androidx.compose.runtime.Immutable
-import androidx.compose.ui.graphics.Color
 import com.zagirlek.analytics.ui.chart.AnalyticsChartSegment
 import java.math.BigDecimal
 
@@ -12,12 +11,14 @@ data class AnalyticsCategorySummary(
     val categoryEmoji: String,
     val amount: BigDecimal,
     val amountText: String,
-    val color: Color,
 ) {
     init {
         require(amount >= BigDecimal.ZERO) { "Category amount cannot be negative." }
     }
 }
+
+val AnalyticsCategorySummary.color
+    get() = AnalyticsCategoryColorResolver.resolve(categoryId)
 
 fun AnalyticsCategorySummary.toChartSegment(): AnalyticsChartSegment = AnalyticsChartSegment(
     categoryId = categoryId,

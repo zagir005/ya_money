@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.tooling.preview.Preview
 import com.zagirlek.systemdesign.theme.YaMoneyDesign
 import com.zagirlek.systemdesign.theme.YaMoneyTheme
+import com.zagirlek.analytics.ui.summary.AnalyticsCategoryColorResolver
 import java.math.BigDecimal
 import java.math.MathContext
 import kotlin.math.min
@@ -109,9 +110,24 @@ private fun AnalyticsDonutChartPreview() {
     YaMoneyTheme {
         AnalyticsDonutChart(
             segments = listOf(
-                AnalyticsChartSegment(1, "Ремонт", BigDecimal("80200"), Color(0xFFA98DF1)),
-                AnalyticsChartSegment(2, "Транспорт", BigDecimal("33744"), Color(0xFF56CBDC)),
-                AnalyticsChartSegment(3, "Продукты", BigDecimal("18300"), Color(0xFFF18AB2)),
+                AnalyticsChartSegment(
+                    1,
+                    "Ремонт",
+                    BigDecimal("80200"),
+                    AnalyticsCategoryColorResolver.resolve(1),
+                ),
+                AnalyticsChartSegment(
+                    2,
+                    "Транспорт",
+                    BigDecimal("33744"),
+                    AnalyticsCategoryColorResolver.resolve(2),
+                ),
+                AnalyticsChartSegment(
+                    3,
+                    "Продукты",
+                    BigDecimal("18300"),
+                    AnalyticsCategoryColorResolver.resolve(3),
+                ),
             ),
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {

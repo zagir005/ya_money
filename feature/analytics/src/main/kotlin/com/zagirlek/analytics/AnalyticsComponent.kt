@@ -1,3 +1,5 @@
 package com.zagirlek.analytics
 
-interface AnalyticsComponent
+import com.zagirlek.ui.mvi.MviStore
+
+interface AnalyticsComponent : MviStore<AnalyticsIntent, AnalyticsState, AnalyticsEffect>

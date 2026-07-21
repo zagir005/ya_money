@@ -20,6 +20,7 @@ class MainActivity : ComponentActivity() {
             accountsRepository = dependencies.accountsRepository,
             expensesRepository = dependencies.expensesRepository,
             incomesRepository = dependencies.incomesRepository,
+            transactionHistoryRepository = dependencies.transactionHistoryRepository,
         )
     }
 

@@ -4,6 +4,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.childStack
+import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.value.Value
 import com.zagirlek.analytics.AnalyticsComponent
@@ -11,6 +12,7 @@ import com.zagirlek.analytics.DefaultAnalyticsComponent
 import com.zagirlek.finance.api.account.AccountsRepository
 import com.zagirlek.finance.api.expense.ExpensesRepository
 import com.zagirlek.finance.api.income.IncomesRepository
+import com.zagirlek.finance.api.transaction.TransactionHistoryRepository
 
 interface RootComponent {
     val childStack: Value<ChildStack<Configuration, Child>>
@@ -31,6 +33,7 @@ class DefaultRootComponent(
     private val accountsRepository: AccountsRepository,
     private val expensesRepository: ExpensesRepository,
     private val incomesRepository: IncomesRepository,
+    private val transactionHistoryRepository: TransactionHistoryRepository,
 ) : RootComponent, ComponentContext by componentContext {
     private val navigation = StackNavigation<RootComponent.Configuration>()
 
@@ -56,7 +59,12 @@ class DefaultRootComponent(
             ),
         )
         RootComponent.Configuration.Analytics -> RootComponent.Child.Analytics(
-            component = DefaultAnalyticsComponent(componentContext),
+            component = DefaultAnalyticsComponent(
+                componentContext = componentContext,
+                transactionHistoryRepository = transactionHistoryRepository,
+                accountsRepository = accountsRepository,
+                onBackRequested = { navigation.pop() },
+            ),
         )
     }
 }

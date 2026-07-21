@@ -31,10 +31,6 @@ data class TransactionHistoryEntry(
     val description: String?,
 )
 
-/**
- * A combined, account-independent transaction history for period-based
- * consumers such as analytics.
- */
 interface TransactionHistoryRepository {
     suspend fun getHistory(
         period: TransactionPeriod = TransactionPeriod.currentMonthToDate(),

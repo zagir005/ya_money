@@ -219,6 +219,8 @@ Presentation вертикального среза аналитики:
 - использует единую UI-модель сводной категории для диаграммы и строки
   детализации. Специфичное рисование полосы прогресса выделено в отдельный
   stateless-компонент рядом с аналитикой;
+- назначает цвет категории детерминированно по её ID через палитру из 30
+  оттенков. Цвет не приходит с backend и не зависит от порядка или фильтров;
 - использует `CalendarBottomSheet`: он оборачивает системный Material 3
   `DateRangePicker` общим `BaseBottomSheet`, хранит черновой `LocalDate`
   диапазон внутри Compose и передаёт применённые даты в экран через callback;
@@ -357,6 +359,8 @@ container заменяется на `ChildPages`, сохраняющий доч�
 - `RootComponent` создаёт `MainComponent` и передаёт ему callback навигации;
 - `MainComponent` передаёт repository в `DefaultExpensesComponent` через
   конструктор;
+- `RootComponent` передаёт `TransactionHistoryRepository`, `AccountsRepository`
+  и callback возврата в `AnalyticsComponent` через конструктор;
 - MVI Component создаётся на экземпляр экрана, а не как singleton;
 - Compose и domain-код не получают `AppDependencies` и не используют service
   locator.

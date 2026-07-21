@@ -15,7 +15,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.zagirlek.systemdesign.theme.YaMoneyDesign
@@ -101,7 +100,6 @@ private fun CategoryProgressItemPreview() {
                 categoryEmoji = "🔧",
                 amount = BigDecimal("80200"),
                 amountText = "80 200 ₽",
-                color = Color(0xFFA98DF1),
             ),
             totalAmount = BigDecimal("132244"),
             modifier = Modifier.padding(16.dp),
