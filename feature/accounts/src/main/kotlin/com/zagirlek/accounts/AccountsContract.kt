@@ -1,5 +1,6 @@
 package com.zagirlek.accounts
 
+import com.zagirlek.finance.api.error.NetworkError
 import com.zagirlek.ui.mvi.Effect
 import com.zagirlek.ui.mvi.Intent
 import com.zagirlek.ui.mvi.Mutation
@@ -16,12 +17,13 @@ data class AccountItemUi(
 sealed interface AccountsState : State {
     data object Loading : AccountsState
     data object Empty : AccountsState
-    data class Error(val message: String) : AccountsState
+    data class Error(val error: NetworkError) : AccountsState
 
     data class Content(
         val total: String,
         val items: List<AccountItemUi>,
         val isRefreshing: Boolean = false,
+        val refreshError: NetworkError? = null,
     ) : AccountsState
 }
 
@@ -38,9 +40,9 @@ sealed interface AccountsIntent : Intent {
 sealed interface AccountsMutation : Mutation {
     data object Loading : AccountsMutation
     data object Empty : AccountsMutation
-    data class Error(val message: String) : AccountsMutation
+    data class Error(val error: NetworkError) : AccountsMutation
     data object Refreshing : AccountsMutation
-    data class RefreshFailed(val message: String) : AccountsMutation
+    data class RefreshFailed(val error: NetworkError) : AccountsMutation
 
     data class Content(
         val total: String,
@@ -57,10 +59,14 @@ object AccountsReducer : MviReducer<AccountsState, AccountsMutation> {
     ): AccountsState = when (mutation) {
         AccountsMutation.Loading -> AccountsState.Loading
         AccountsMutation.Empty -> AccountsState.Empty
-        is AccountsMutation.Error -> AccountsState.Error(mutation.message)
-        AccountsMutation.Refreshing -> (state as? AccountsState.Content)?.copy(isRefreshing = true) ?: state
+        is AccountsMutation.Error -> AccountsState.Error(mutation.error)
+        AccountsMutation.Refreshing -> (state as? AccountsState.Content)?.copy(
+            isRefreshing = true,
+            refreshError = null,
+        ) ?: state
         is AccountsMutation.RefreshFailed -> (state as? AccountsState.Content)?.copy(isRefreshing = false)
-            ?: AccountsState.Error(mutation.message)
+            ?.copy(refreshError = mutation.error)
+            ?: AccountsState.Error(mutation.error)
         is AccountsMutation.Content -> AccountsState.Content(
             total = mutation.total,
             items = mutation.items,

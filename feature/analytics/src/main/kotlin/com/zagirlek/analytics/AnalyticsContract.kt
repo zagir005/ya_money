@@ -3,6 +3,7 @@ package com.zagirlek.analytics
 import com.zagirlek.analytics.ui.summary.AnalyticsCategorySummary
 import com.zagirlek.finance.api.account.Account
 import com.zagirlek.finance.api.account.AccountId
+import com.zagirlek.finance.api.error.NetworkError
 import com.zagirlek.finance.api.transaction.TransactionHistoryEntry
 import com.zagirlek.finance.api.transaction.TransactionPeriod
 import com.zagirlek.finance.api.transaction.TransactionType
@@ -14,28 +15,43 @@ import com.zagirlek.ui.mvi.State
 import java.time.LocalDate
 
 sealed interface AnalyticsState : State {
-    data object Loading : AnalyticsState
+    val period: TransactionPeriod
+    val filters: AnalyticsFilters
+
+    data class Loading(
+        override val period: TransactionPeriod,
+        override val filters: AnalyticsFilters,
+    ) : AnalyticsState
 
     data class Content(
-        val period: TransactionPeriod,
+        override val period: TransactionPeriod,
+        val allTransactions: List<TransactionHistoryEntry>,
         val transactions: List<TransactionHistoryEntry>,
         val accounts: List<Account>,
-        val filters: AnalyticsFilters,
+        override val filters: AnalyticsFilters,
         val summary: AnalyticsSummaryUi,
         val transactionItems: List<AnalyticsTransactionItemUi>,
         val filterOptions: AnalyticsFilterOptions,
         val isRefreshing: Boolean = false,
+        val historyError: NetworkError? = null,
     ) : AnalyticsState
 
     data class Empty(
-        val period: TransactionPeriod,
+        override val period: TransactionPeriod,
+        val allTransactions: List<TransactionHistoryEntry>,
         val accounts: List<Account>,
-        val filters: AnalyticsFilters,
+        override val filters: AnalyticsFilters,
         val summary: AnalyticsSummaryUi,
         val filterOptions: AnalyticsFilterOptions,
+        val isRefreshing: Boolean = false,
+        val historyError: NetworkError? = null,
     ) : AnalyticsState
 
-    data class Error(val message: String) : AnalyticsState
+    data class Error(
+        val error: NetworkError,
+        override val period: TransactionPeriod,
+        override val filters: AnalyticsFilters,
+    ) : AnalyticsState
 }
 
 sealed interface AnalyticsIntent : Intent {
@@ -56,10 +72,14 @@ sealed interface AnalyticsIntent : Intent {
 }
 
 sealed interface AnalyticsMutation : Mutation {
-    data object Loading : AnalyticsMutation
+    data class Loading(
+        val period: TransactionPeriod,
+        val filters: AnalyticsFilters,
+    ) : AnalyticsMutation
 
     data class Content(
         val period: TransactionPeriod,
+        val allTransactions: List<TransactionHistoryEntry>,
         val transactions: List<TransactionHistoryEntry>,
         val accounts: List<Account>,
         val filters: AnalyticsFilters,
@@ -70,15 +90,21 @@ sealed interface AnalyticsMutation : Mutation {
 
     data class Empty(
         val period: TransactionPeriod,
+        val allTransactions: List<TransactionHistoryEntry>,
         val accounts: List<Account>,
         val filters: AnalyticsFilters,
         val summary: AnalyticsSummaryUi,
         val filterOptions: AnalyticsFilterOptions,
     ) : AnalyticsMutation
 
-    data class Error(val message: String) : AnalyticsMutation
+    data class Error(
+        val error: NetworkError,
+        val period: TransactionPeriod,
+        val filters: AnalyticsFilters,
+    ) : AnalyticsMutation
+    data class FiltersUpdated(val filters: AnalyticsFilters) : AnalyticsMutation
     data object Refreshing : AnalyticsMutation
-    data class RefreshFailed(val message: String) : AnalyticsMutation
+    data class RefreshFailed(val error: NetworkError) : AnalyticsMutation
 }
 
 sealed interface AnalyticsEffect : Effect {
@@ -153,9 +179,13 @@ object AnalyticsReducer : MviReducer<AnalyticsState, AnalyticsMutation> {
         state: AnalyticsState,
         mutation: AnalyticsMutation,
     ): AnalyticsState = when (mutation) {
-        AnalyticsMutation.Loading -> AnalyticsState.Loading
+        is AnalyticsMutation.Loading -> AnalyticsState.Loading(
+            period = mutation.period,
+            filters = mutation.filters,
+        )
         is AnalyticsMutation.Content -> AnalyticsState.Content(
             period = mutation.period,
+            allTransactions = mutation.allTransactions,
             transactions = mutation.transactions,
             accounts = mutation.accounts,
             filters = mutation.filters,
@@ -165,14 +195,42 @@ object AnalyticsReducer : MviReducer<AnalyticsState, AnalyticsMutation> {
         )
         is AnalyticsMutation.Empty -> AnalyticsState.Empty(
             period = mutation.period,
+            allTransactions = mutation.allTransactions,
             accounts = mutation.accounts,
             filters = mutation.filters,
             summary = mutation.summary,
             filterOptions = mutation.filterOptions,
         )
-        is AnalyticsMutation.Error -> AnalyticsState.Error(mutation.message)
-        AnalyticsMutation.Refreshing -> (state as? AnalyticsState.Content)?.copy(isRefreshing = true) ?: state
-        is AnalyticsMutation.RefreshFailed -> (state as? AnalyticsState.Content)?.copy(isRefreshing = false)
-            ?: AnalyticsState.Error(mutation.message)
+        is AnalyticsMutation.Error -> AnalyticsState.Error(
+            error = mutation.error,
+            period = mutation.period,
+            filters = mutation.filters,
+        )
+        is AnalyticsMutation.FiltersUpdated -> when (state) {
+            is AnalyticsState.Loading -> state.copy(filters = mutation.filters)
+            is AnalyticsState.Content -> state.copy(filters = mutation.filters)
+            is AnalyticsState.Empty -> state.copy(filters = mutation.filters)
+            is AnalyticsState.Error -> state.copy(filters = mutation.filters)
+        }
+        AnalyticsMutation.Refreshing -> when (state) {
+            is AnalyticsState.Content -> state.copy(isRefreshing = true, historyError = null)
+            is AnalyticsState.Empty -> state.copy(isRefreshing = true, historyError = null)
+            else -> state
+        }
+        is AnalyticsMutation.RefreshFailed -> when (state) {
+            is AnalyticsState.Content -> state.copy(
+                isRefreshing = false,
+                historyError = mutation.error,
+            )
+            is AnalyticsState.Empty -> state.copy(
+                isRefreshing = false,
+                historyError = mutation.error,
+            )
+            else -> AnalyticsState.Error(
+                error = mutation.error,
+                period = state.period,
+                filters = state.filters,
+            )
+        }
     }
 }

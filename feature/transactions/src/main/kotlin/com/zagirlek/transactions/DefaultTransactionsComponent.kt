@@ -3,6 +3,7 @@ package com.zagirlek.transactions
 import com.arkivanov.decompose.ComponentContext
 import com.zagirlek.finance.api.expense.Expense
 import com.zagirlek.finance.api.expense.ExpensesRepository
+import com.zagirlek.finance.api.error.toNetworkError
 import com.zagirlek.finance.api.income.Income
 import com.zagirlek.finance.api.income.IncomesRepository
 import com.zagirlek.finance.api.transaction.TransactionPeriod
@@ -79,9 +80,9 @@ class DefaultTransactionsComponent(
                 throw error
             } catch (error: Exception) {
                 if (isContentRefresh) {
-                    TransactionsMutation.RefreshFailed(error.toErrorMessage())
+                    TransactionsMutation.RefreshFailed(error.toNetworkError())
                 } else {
-                    TransactionsMutation.Error(error.toErrorMessage())
+                    TransactionsMutation.Error(error.toNetworkError())
                 }
             }
 
@@ -121,9 +122,4 @@ class DefaultTransactionsComponent(
         )
     }
 
-    private fun Exception.toErrorMessage(): String = message ?: DEFAULT_ERROR_MESSAGE
-
-    private companion object {
-        const val DEFAULT_ERROR_MESSAGE = "Не удалось загрузить операции."
-    }
 }

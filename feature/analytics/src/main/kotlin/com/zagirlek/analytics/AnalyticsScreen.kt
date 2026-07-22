@@ -64,8 +64,8 @@ import com.zagirlek.finance.api.transaction.TransactionPeriod
 import com.zagirlek.finance.api.transaction.TransactionType
 import com.zagirlek.systemdesign.theme.YaMoneyDesign
 import com.zagirlek.ui.components.elements.BaseBottomSheet
-import com.zagirlek.ui.components.elements.ErrorContent
 import com.zagirlek.ui.components.elements.LoadingContent
+import com.zagirlek.ui.components.elements.NetworkErrorAlert
 import com.zagirlek.ui.components.elements.SelectionListItem
 import com.zagirlek.ui.components.elements.SelectionListItemControl
 import java.time.LocalDate
@@ -109,6 +109,17 @@ fun AnalyticsScreen(component: AnalyticsComponent) {
             onIntent = component::accept,
             onDismissRequest = { activeSheet = null },
         )
+        is AnalyticsState.Error -> AnalyticsFilterSheets(
+            activeSheet = activeSheet,
+            period = currentState.period,
+            filters = currentState.filters,
+            options = AnalyticsFilterOptions(
+                categories = emptyList(),
+                accounts = emptyList(),
+            ),
+            onIntent = component::accept,
+            onDismissRequest = { activeSheet = null },
+        )
         else -> Unit
     }
 
@@ -141,20 +152,28 @@ fun AnalyticsContent(
             AnalyticsTopBar(onBackClicked = { onIntent(AnalyticsIntent.BackClicked) })
 
             when (state) {
-                AnalyticsState.Loading -> AnalyticsStateContent { LoadingContent() }
-                is AnalyticsState.Error -> AnalyticsStateContent {
-                    ErrorContent(
-                        message = state.message,
-                        onRetryClicked = { onIntent(AnalyticsIntent.RetryClicked) },
-                    )
-                }
+                is AnalyticsState.Loading -> AnalyticsStateContent { LoadingContent() }
+                is AnalyticsState.Error -> AnalyticsOverview(
+                    period = state.period,
+                    filters = state.filters,
+                    summary = AnalyticsSummaryUi(total = "", categories = emptyList()),
+                    filterOptions = AnalyticsFilterOptions(
+                        categories = emptyList(),
+                        accounts = emptyList(),
+                    ),
+                    transactionItems = emptyList(),
+                    isRefreshing = false,
+                    historyError = state.error,
+                    onIntent = onIntent,
+                )
                 is AnalyticsState.Empty -> AnalyticsOverview(
                     period = state.period,
                     filters = state.filters,
                     summary = state.summary,
                     filterOptions = state.filterOptions,
                     transactionItems = emptyList(),
-                    isRefreshing = false,
+                    isRefreshing = state.isRefreshing,
+                    historyError = state.historyError,
                     onIntent = onIntent,
                 )
                 is AnalyticsState.Content -> AnalyticsOverview(
@@ -164,6 +183,7 @@ fun AnalyticsContent(
                     filterOptions = state.filterOptions,
                     transactionItems = state.transactionItems,
                     isRefreshing = state.isRefreshing,
+                    historyError = state.historyError,
                     onIntent = onIntent,
                 )
             }
@@ -204,6 +224,7 @@ private fun AnalyticsOverview(
     filterOptions: AnalyticsFilterOptions,
     transactionItems: List<AnalyticsTransactionItemUi>,
     isRefreshing: Boolean,
+    historyError: com.zagirlek.finance.api.error.NetworkError?,
     onIntent: (AnalyticsIntent) -> Unit,
 ) {
     val dimensions = YaMoneyDesign.dimensions
@@ -272,7 +293,15 @@ private fun AnalyticsOverview(
                 )
             }
 
-            if (transactionItems.isNotEmpty()) {
+            if (historyError != null) {
+                item {
+                    NetworkErrorAlert(
+                        title = historyError.title,
+                        message = historyError.message.orEmpty(),
+                        onRetryClicked = { onIntent(AnalyticsIntent.RetryClicked) },
+                    )
+                }
+            } else if (transactionItems.isNotEmpty()) {
                 item {
                     Text(
                         text = stringResource(R.string.analytics_transactions),

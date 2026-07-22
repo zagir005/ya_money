@@ -19,8 +19,8 @@ import com.zagirlek.accounts.R
 import com.zagirlek.systemdesign.theme.YaMoneyDesign
 import com.zagirlek.systemdesign.theme.YaMoneyTheme
 import com.zagirlek.ui.components.elements.CenteredMessage
-import com.zagirlek.ui.components.elements.ErrorContent
 import com.zagirlek.ui.components.elements.LoadingContent
+import com.zagirlek.ui.components.elements.NetworkErrorAlert
 import com.zagirlek.ui.components.finance.BalanceCard
 import com.zagirlek.ui.components.finance.FinanceListItem
 import com.zagirlek.ui.components.finance.FinanceScaffold
@@ -70,8 +70,9 @@ fun AccountsContent(
             }
 
             is AccountsState.Error -> AccountsStateContent(scaffoldPadding) {
-                ErrorContent(
-                    message = state.message,
+                NetworkErrorAlert(
+                    title = state.error.title,
+                    message = state.error.message.orEmpty(),
                     onRetryClicked = { onIntent(AccountsIntent.RetryClicked) },
                 )
             }
@@ -106,13 +107,23 @@ private fun AccountsList(
                     balance = state.total,
                 )
             }
-            items(items = state.items, key = AccountItemUi::id) { item ->
+            if (state.refreshError != null) {
+                item {
+                    NetworkErrorAlert(
+                        title = state.refreshError.title,
+                        message = state.refreshError.message.orEmpty(),
+                        onRetryClicked = onRefresh,
+                    )
+                }
+            } else {
+                items(items = state.items, key = AccountItemUi::id) { item ->
                 FinanceListItem(
                     lead = item.lead,
                     content = item.content,
                     trail = item.trail,
                     onClick = { onAccountClicked(item.id) },
                 )
+                }
             }
         }
     }
@@ -187,7 +198,9 @@ private fun AccountsEmptyPreview() {
 private fun AccountsErrorPreview() {
     YaMoneyTheme {
         AccountsContent(
-            state = AccountsState.Error("Не удалось загрузить счета."),
+            state = AccountsState.Error(
+                com.zagirlek.finance.api.error.NetworkError.Unknown,
+            ),
             onIntent = {},
         )
     }

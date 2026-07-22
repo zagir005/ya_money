@@ -1,5 +1,6 @@
 package com.zagirlek.accounts
 
+import com.zagirlek.finance.api.error.NetworkError
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -27,19 +28,23 @@ class AccountsReducerTest {
 
     @Test
     fun `loading error switches screen to error state`() {
+        val error = NetworkError.Network
+
         assertEquals(
-            AccountsState.Error("Ошибка сети"),
-            AccountsReducer.reduce(content, AccountsMutation.Error("Ошибка сети")),
+            AccountsState.Error(error),
+            AccountsReducer.reduce(content, AccountsMutation.Error(error)),
         )
     }
 
     @Test
     fun `refresh error keeps current content and hides indicator`() {
+        val error = NetworkError.Network
+
         assertEquals(
-            content,
+            content.copy(refreshError = error),
             AccountsReducer.reduce(
                 content.copy(isRefreshing = true),
-                AccountsMutation.RefreshFailed,
+                AccountsMutation.RefreshFailed(error),
             ),
         )
     }

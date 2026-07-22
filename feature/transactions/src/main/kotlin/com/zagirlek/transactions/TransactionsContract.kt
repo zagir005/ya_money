@@ -1,5 +1,6 @@
 package com.zagirlek.transactions
 
+import com.zagirlek.finance.api.error.NetworkError
 import com.zagirlek.ui.mvi.Effect
 import com.zagirlek.ui.mvi.Intent
 import com.zagirlek.ui.mvi.Mutation
@@ -16,12 +17,13 @@ data class TransactionItemUi(
 sealed interface TransactionsState : State {
     data object Loading : TransactionsState
     data object Empty : TransactionsState
-    data class Error(val message: String) : TransactionsState
+    data class Error(val error: NetworkError) : TransactionsState
 
     data class Content(
         val total: String,
         val items: List<TransactionItemUi>,
         val isRefreshing: Boolean = false,
+        val refreshError: NetworkError? = null,
     ) : TransactionsState
 }
 
@@ -38,9 +40,9 @@ sealed interface TransactionsIntent : Intent {
 sealed interface TransactionsMutation : Mutation {
     data object Loading : TransactionsMutation
     data object Empty : TransactionsMutation
-    data class Error(val message: String) : TransactionsMutation
+    data class Error(val error: NetworkError) : TransactionsMutation
     data object Refreshing : TransactionsMutation
-    data class RefreshFailed(val message: String) : TransactionsMutation
+    data class RefreshFailed(val error: NetworkError) : TransactionsMutation
 
     data class Content(
         val total: String,
@@ -57,10 +59,14 @@ object TransactionsReducer : MviReducer<TransactionsState, TransactionsMutation>
     ): TransactionsState = when (mutation) {
         TransactionsMutation.Loading -> TransactionsState.Loading
         TransactionsMutation.Empty -> TransactionsState.Empty
-        is TransactionsMutation.Error -> TransactionsState.Error(mutation.message)
-        TransactionsMutation.Refreshing -> (state as? TransactionsState.Content)?.copy(isRefreshing = true) ?: state
+        is TransactionsMutation.Error -> TransactionsState.Error(mutation.error)
+        TransactionsMutation.Refreshing -> (state as? TransactionsState.Content)?.copy(
+            isRefreshing = true,
+            refreshError = null,
+        ) ?: state
         is TransactionsMutation.RefreshFailed -> (state as? TransactionsState.Content)?.copy(isRefreshing = false)
-            ?: TransactionsState.Error(mutation.message)
+            ?.copy(refreshError = mutation.error)
+            ?: TransactionsState.Error(mutation.error)
         is TransactionsMutation.Content -> TransactionsState.Content(
             total = mutation.total,
             items = mutation.items,

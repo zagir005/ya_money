@@ -3,6 +3,7 @@ package com.zagirlek.accounts
 import com.arkivanov.decompose.ComponentContext
 import com.zagirlek.finance.api.account.Account
 import com.zagirlek.finance.api.account.AccountsRepository
+import com.zagirlek.finance.api.error.toNetworkError
 import com.zagirlek.ui.cmp.MviComponent
 import com.zagirlek.ui.formatter.Currency
 import com.zagirlek.ui.formatter.DefaultMoneyFormatter
@@ -66,9 +67,9 @@ class DefaultAccountsComponent(
                 throw error
             } catch (error: Exception) {
                 if (isContentRefresh) {
-                    AccountsMutation.RefreshFailed(error.toErrorMessage())
+                    AccountsMutation.RefreshFailed(error.toNetworkError())
                 } else {
-                    AccountsMutation.Error(error.toErrorMessage())
+                    AccountsMutation.Error(error.toNetworkError())
                 }
             }
 
@@ -93,9 +94,4 @@ class DefaultAccountsComponent(
         )
     }
 
-    private fun Exception.toErrorMessage(): String = message ?: DEFAULT_ERROR_MESSAGE
-
-    private companion object {
-        const val DEFAULT_ERROR_MESSAGE = "Не удалось загрузить счета."
-    }
 }
