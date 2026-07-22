@@ -4,7 +4,6 @@ import com.zagirlek.ui.mvi.Effect
 import com.zagirlek.ui.mvi.Intent
 import com.zagirlek.ui.mvi.Mutation
 import com.zagirlek.ui.mvi.MviReducer
-import com.zagirlek.ui.mvi.RetryableErrorEffect
 import com.zagirlek.ui.mvi.State
 
 data class TransactionItemUi(
@@ -49,11 +48,7 @@ sealed interface TransactionsMutation : Mutation {
     ) : TransactionsMutation
 }
 
-sealed interface TransactionsEffect : Effect {
-    data class ShowRetryableError(
-        override val message: String,
-    ) : TransactionsEffect, RetryableErrorEffect
-}
+sealed interface TransactionsEffect : Effect
 
 object TransactionsReducer : MviReducer<TransactionsState, TransactionsMutation> {
     override fun reduce(

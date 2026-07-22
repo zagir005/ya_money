@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -22,12 +21,9 @@ import com.zagirlek.transactions.R
 import com.zagirlek.ui.components.elements.CenteredMessage
 import com.zagirlek.ui.components.elements.ErrorContent
 import com.zagirlek.ui.components.elements.LoadingContent
-import com.zagirlek.ui.components.elements.RetryableErrorSnackbar
 import com.zagirlek.ui.components.finance.BalanceCard
 import com.zagirlek.ui.components.finance.FinanceListItem
 import com.zagirlek.ui.components.finance.FinanceScaffold
-import com.zagirlek.ui.mvi.RetryableErrorEffect
-import kotlinx.coroutines.flow.filterIsInstance
 
 @Composable
 fun TransactionsScreen(
@@ -36,17 +32,11 @@ fun TransactionsScreen(
     onAnalyticsClick: () -> Unit = {},
 ) {
     val state by component.state.collectAsState()
-    val snackbarHostState = RetryableErrorSnackbar(
-        effects = component.effects.filterIsInstance<RetryableErrorEffect>(),
-        onRetry = { component.accept(TransactionsIntent.RetryClicked) },
-    )
-
     TransactionsContent(
         type = type,
         state = state,
         onIntent = component::accept,
         onAnalyticsClick = onAnalyticsClick,
-        snackbarHostState = snackbarHostState,
     )
 }
 
@@ -56,7 +46,6 @@ fun TransactionsContent(
     state: TransactionsState,
     onIntent: (TransactionsIntent) -> Unit,
     onAnalyticsClick: () -> Unit = {},
-    snackbarHostState: SnackbarHostState? = null,
     modifier: Modifier = Modifier,
 ) {
     FinanceScaffold(
@@ -65,7 +54,6 @@ fun TransactionsContent(
         onAnalyticsClick = onAnalyticsClick,
         onSettingsClick = { onIntent(TransactionsIntent.SettingsClicked) },
         onAddClick = { onIntent(TransactionsIntent.AddClicked) },
-        snackbarHostState = snackbarHostState,
         modifier = modifier,
     ) { scaffoldPadding ->
         when (state) {

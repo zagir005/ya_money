@@ -21,10 +21,13 @@
     <string name="analytics_all">Все</string>
     <string name="analytics_expenses">Расходы</string>
     <string name="analytics_income">Доходы</string>
+    <string name="analytics_type_done">Готово</string>
     <string name="analytics_all_categories">Все статьи</string>
     <string name="analytics_all_accounts">Все счета</string>
     <string name="analytics_transactions">Транзакции</string>
     <string name="analytics_categories_sheet_title">Статьи</string>
     <string name="analytics_categories_empty">За выбранный период и тип операций статей нет. Измените фильтры и попробуйте снова.</string>
-    <string name="analytics_accounts_sheet_title">Счета</string>
+    <string name="analytics_categories_none">Не выбрано</string>
+    <string name="analytics_categories_apply">Применить</string>
+    <string name="analytics_accounts_sheet_title">Счёт</string>
 </resources>

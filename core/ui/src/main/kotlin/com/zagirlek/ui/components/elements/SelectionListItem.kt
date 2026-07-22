@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.zagirlek.systemdesign.theme.YaMoneyDesign
 import com.zagirlek.systemdesign.theme.YaMoneyTheme
@@ -48,6 +49,7 @@ fun SelectionListItem(
     subtitle: String? = null,
     leadingEmoji: String? = null,
     control: SelectionListItemControl? = null,
+    controlSize: Dp? = null,
 ) {
     val dimensions = YaMoneyDesign.dimensions
 
@@ -93,7 +95,7 @@ fun SelectionListItem(
             }
         }
 
-        control?.let { SelectionControl(it, onClick) }
+        control?.let { SelectionControl(it, onClick, controlSize) }
     }
 }
 
@@ -101,6 +103,7 @@ fun SelectionListItem(
 private fun SelectionControl(
     control: SelectionListItemControl,
     onClick: () -> Unit,
+    controlSize: Dp?,
 ) {
     val dimensions = YaMoneyDesign.dimensions
 
@@ -124,7 +127,7 @@ private fun SelectionControl(
 
         is SelectionListItemControl.CircularCheckmark -> Box(
             modifier = Modifier
-                .size(dimensions.listLeadingSize)
+                .size(controlSize ?: dimensions.listLeadingSize)
                 .clip(CircleShape)
                 .then(
                     if (control.isSelected) {

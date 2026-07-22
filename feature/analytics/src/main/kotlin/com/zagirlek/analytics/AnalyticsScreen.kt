@@ -28,15 +28,15 @@ import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -66,31 +66,23 @@ import com.zagirlek.systemdesign.theme.YaMoneyDesign
 import com.zagirlek.ui.components.elements.BaseBottomSheet
 import com.zagirlek.ui.components.elements.ErrorContent
 import com.zagirlek.ui.components.elements.LoadingContent
-import com.zagirlek.ui.components.elements.RetryableErrorSnackbar
 import com.zagirlek.ui.components.elements.SelectionListItem
 import com.zagirlek.ui.components.elements.SelectionListItemControl
-import com.zagirlek.ui.mvi.RetryableErrorEffect
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import kotlinx.coroutines.flow.filterIsInstance
+import java.util.Collections.emptyList
 
 @Composable
 fun AnalyticsScreen(component: AnalyticsComponent) {
     val state by component.state.collectAsState()
     var activeSheet by remember { mutableStateOf<AnalyticsFilterSheet?>(null) }
     var showChartDetails by remember { mutableStateOf(false) }
-    val snackbarHostState = RetryableErrorSnackbar(
-        effects = component.effects.filterIsInstance<RetryableErrorEffect>(),
-        onRetry = { component.accept(AnalyticsIntent.RetryClicked) },
-    )
-
     LaunchedEffect(component) {
         component.effects
             .collect { effect ->
                 when (effect) {
                     is AnalyticsEffect.ShowFilterSheet -> activeSheet = effect.sheet
                     AnalyticsEffect.ShowChartDetails -> showChartDetails = true
-                    is AnalyticsEffect.ShowRetryableError -> Unit
                 }
             }
     }
@@ -98,7 +90,6 @@ fun AnalyticsScreen(component: AnalyticsComponent) {
     AnalyticsContent(
         state = state,
         onIntent = component::accept,
-        snackbarHostState = snackbarHostState,
     )
 
     when (val currentState = state) {
@@ -136,13 +127,11 @@ fun AnalyticsScreen(component: AnalyticsComponent) {
 fun AnalyticsContent(
     state: AnalyticsState,
     onIntent: (AnalyticsIntent) -> Unit,
-    snackbarHostState: SnackbarHostState? = null,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
         modifier = modifier,
         containerColor = MaterialTheme.colorScheme.background,
-        snackbarHost = { snackbarHostState?.let { SnackbarHost(it) } },
     ) { contentPadding ->
         Column(
             modifier = Modifier
@@ -165,6 +154,7 @@ fun AnalyticsContent(
                     summary = state.summary,
                     filterOptions = state.filterOptions,
                     transactionItems = emptyList(),
+                    isRefreshing = false,
                     onIntent = onIntent,
                 )
                 is AnalyticsState.Content -> AnalyticsOverview(
@@ -173,6 +163,7 @@ fun AnalyticsContent(
                     summary = state.summary,
                     filterOptions = state.filterOptions,
                     transactionItems = state.transactionItems,
+                    isRefreshing = state.isRefreshing,
                     onIntent = onIntent,
                 )
             }
@@ -212,27 +203,33 @@ private fun AnalyticsOverview(
     summary: AnalyticsSummaryUi,
     filterOptions: AnalyticsFilterOptions,
     transactionItems: List<AnalyticsTransactionItemUi>,
+    isRefreshing: Boolean,
     onIntent: (AnalyticsIntent) -> Unit,
 ) {
     val dimensions = YaMoneyDesign.dimensions
 
-    LazyColumn(
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = { onIntent(AnalyticsIntent.RefreshRequested) },
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = dimensions.space32),
     ) {
-        item {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        start = dimensions.screenHorizontalPadding,
-                        end = dimensions.screenHorizontalPadding,
-                        top = dimensions.space24,
-                        bottom = dimensions.space24,
-                    ),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(dimensions.space20),
-            ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = dimensions.space32),
+        ) {
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            start = dimensions.screenHorizontalPadding,
+                            end = dimensions.screenHorizontalPadding,
+                            top = dimensions.space24,
+                            bottom = dimensions.space24,
+                        ),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(dimensions.space20),
+                ) {
                 AnalyticsDonutChart(
                     segments = summary.categories.map(AnalyticsCategorySummary::toChartSegment),
                     modifier = Modifier.clickable(
@@ -262,34 +259,35 @@ private fun AnalyticsOverview(
                     }
                 }
 
-                AnalyticsLegend(categories = summary.categories)
+                    AnalyticsLegend(categories = summary.categories)
+                }
             }
-        }
 
-        item {
-            AnalyticsFiltersSection(
-                period = period,
-                filters = filters,
-                options = filterOptions,
-                onIntent = onIntent,
-            )
-        }
-
-        if (transactionItems.isNotEmpty()) {
             item {
-                Text(
-                    text = stringResource(R.string.analytics_transactions),
-                    modifier = Modifier.padding(
-                        start = dimensions.screenHorizontalPadding,
-                        end = dimensions.screenHorizontalPadding,
-                        top = dimensions.space32,
-                        bottom = dimensions.space12,
-                    ),
-                    style = MaterialTheme.typography.headlineSmall,
+                AnalyticsFiltersSection(
+                    period = period,
+                    filters = filters,
+                    options = filterOptions,
+                    onIntent = onIntent,
                 )
             }
-            items(transactionItems, key = AnalyticsTransactionItemUi::id) { item ->
-                AnalyticsTransactionItem(item = item)
+
+            if (transactionItems.isNotEmpty()) {
+                item {
+                    Text(
+                        text = stringResource(R.string.analytics_transactions),
+                        modifier = Modifier.padding(
+                            start = dimensions.screenHorizontalPadding,
+                            end = dimensions.screenHorizontalPadding,
+                            top = dimensions.space32,
+                            bottom = dimensions.space12,
+                        ),
+                        style = MaterialTheme.typography.headlineSmall,
+                    )
+                }
+                items(transactionItems, key = AnalyticsTransactionItemUi::id) { item ->
+                    AnalyticsTransactionItem(item = item)
+                }
             }
         }
     }
@@ -490,7 +488,7 @@ private fun AnalyticsFilterSheets(
     when (activeSheet) {
         AnalyticsFilterSheet.Type -> TypeFilterBottomSheet(
             selectedType = filters.type,
-            onTypeSelected = {
+            onApply = {
                 onIntent(AnalyticsIntent.TypeApplied(it))
                 onDismissRequest()
             },
@@ -516,7 +514,10 @@ private fun AnalyticsFilterSheets(
         AnalyticsFilterSheet.Categories -> CategoriesFilterBottomSheet(
             options = options.categories,
             selectedCategoryIds = filters.categoryIds,
-            onSelectionChanged = { onIntent(AnalyticsIntent.CategoriesApplied(it)) },
+            onApply = {
+                onIntent(AnalyticsIntent.CategoriesApplied(it))
+                onDismissRequest()
+            },
             onDismissRequest = onDismissRequest,
         )
         AnalyticsFilterSheet.Account -> AccountFilterBottomSheet(
@@ -570,39 +571,62 @@ private fun PeriodFilterBottomSheet(
 @Composable
 private fun TypeFilterBottomSheet(
     selectedType: TransactionType?,
-    onTypeSelected: (TransactionType?) -> Unit,
+    onApply: (TransactionType?) -> Unit,
     onDismissRequest: () -> Unit,
 ) {
+    var draftType by remember(selectedType) { mutableStateOf(selectedType) }
+    val dimensions = YaMoneyDesign.dimensions
+
     BaseBottomSheet(
         onDismissRequest = onDismissRequest,
+        title = stringResource(R.string.analytics_filter_type),
     ) {
         SelectionListItem(
             title = stringResource(R.string.analytics_expenses),
-            control = SelectionListItemControl.CircularCheckmark(selectedType == TransactionType.Expense),
-            onClick = { onTypeSelected(TransactionType.Expense) },
+            control = SelectionListItemControl.CircularCheckmark(draftType == TransactionType.Expense),
+            controlSize = dimensions.compactSelectionControlSize,
+            onClick = { draftType = TransactionType.Expense },
         )
         HorizontalDivider()
         SelectionListItem(
             title = stringResource(R.string.analytics_income),
-            control = SelectionListItemControl.CircularCheckmark(selectedType == TransactionType.Income),
-            onClick = { onTypeSelected(TransactionType.Income) },
+            control = SelectionListItemControl.CircularCheckmark(draftType == TransactionType.Income),
+            controlSize = dimensions.compactSelectionControlSize,
+            onClick = { draftType = TransactionType.Income },
         )
         HorizontalDivider()
         SelectionListItem(
             title = stringResource(R.string.analytics_all),
-            control = SelectionListItemControl.CircularCheckmark(selectedType == null),
-            onClick = { onTypeSelected(null) },
+            control = SelectionListItemControl.CircularCheckmark(draftType == null),
+            controlSize = dimensions.compactSelectionControlSize,
+            onClick = { draftType = null },
         )
+        HorizontalDivider()
+        Button(
+            onClick = { onApply(draftType) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = dimensions.screenHorizontalPadding,
+                    vertical = dimensions.space16,
+                ),
+        ) {
+            Text(stringResource(R.string.analytics_type_done))
+        }
     }
 }
 
 @Composable
 private fun CategoriesFilterBottomSheet(
     options: List<AnalyticsCategoryOptionUi>,
-    selectedCategoryIds: Set<Int>,
-    onSelectionChanged: (Set<Int>) -> Unit,
+    selectedCategoryIds: Set<Int>?,
+    onApply: (Set<Int>) -> Unit,
     onDismissRequest: () -> Unit,
 ) {
+    var draftCategoryIds by remember(options, selectedCategoryIds) {
+        mutableStateOf<Set<Int>>(selectedCategoryIds ?: options.map { it.id }.toSet())
+    }
+
     BaseBottomSheet(
         onDismissRequest = onDismissRequest,
         title = stringResource(R.string.analytics_categories_sheet_title),
@@ -619,17 +643,32 @@ private fun CategoriesFilterBottomSheet(
                 style = MaterialTheme.typography.bodyLarge,
             )
         } else {
-            options.forEach { option ->
+            options.forEachIndexed { index, option ->
                 SelectionListItem(
                     title = option.name,
                     leadingEmoji = option.emoji,
-                    control = SelectionListItemControl.Checkbox(option.id in selectedCategoryIds),
+                    control = SelectionListItemControl.Checkbox(option.id in draftCategoryIds),
                     onClick = {
-                        onSelectionChanged(
-                            selectedCategoryIds.toggle(option.id),
-                        )
+                        draftCategoryIds = draftCategoryIds.toggle(option.id)
                     },
                 )
+                if (index != options.lastIndex) {
+                    HorizontalDivider()
+                }
+            }
+            HorizontalDivider()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = YaMoneyDesign.dimensions.screenHorizontalPadding,
+                        vertical = YaMoneyDesign.dimensions.space16,
+                    ),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                Button(onClick = { onApply(draftCategoryIds) }) {
+                    Text(stringResource(R.string.analytics_categories_apply))
+                }
             }
         }
     }
@@ -645,19 +684,32 @@ private fun AccountFilterBottomSheet(
     BaseBottomSheet(
         onDismissRequest = onDismissRequest,
         title = stringResource(R.string.analytics_accounts_sheet_title),
+        fillContentHeight = true,
     ) {
         SelectionListItem(
             title = stringResource(R.string.analytics_all_accounts),
+            leadingEmoji = "💳",
             control = SelectionListItemControl.Checkmark(selectedAccountId == null),
             onClick = { onAccountSelected(null) },
         )
-        options.forEach { option ->
-            SelectionListItem(
-                title = option.name,
-                leadingEmoji = option.emoji,
-                control = SelectionListItemControl.Checkmark(option.id == selectedAccountId),
-                onClick = { onAccountSelected(option.id) },
-            )
+        HorizontalDivider()
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+        ) {
+            items(
+                items = options,
+                key = { it.id.value },
+            ) { option ->
+                SelectionListItem(
+                    title = option.name,
+                    leadingEmoji = option.emoji,
+                    control = SelectionListItemControl.Checkmark(option.id == selectedAccountId),
+                    onClick = { onAccountSelected(option.id) },
+                )
+                HorizontalDivider()
+            }
         }
     }
 }
@@ -688,8 +740,9 @@ private fun AnalyticsPeriodPreset.label(): String = when (this) {
 }
 
 @Composable
-private fun Set<Int>.toCategoriesLabel(categories: List<AnalyticsCategoryOptionUi>): String {
-    if (isEmpty()) return stringResource(R.string.analytics_all_categories)
+private fun Set<Int>?.toCategoriesLabel(categories: List<AnalyticsCategoryOptionUi>): String {
+    if (this == null) return stringResource(R.string.analytics_all_categories)
+    if (isEmpty()) return stringResource(R.string.analytics_categories_none)
     val selectedNames = categories.filter { it.id in this }.map { it.name }
     return if (selectedNames.isNotEmpty()) {
         selectedNames.joinToString()

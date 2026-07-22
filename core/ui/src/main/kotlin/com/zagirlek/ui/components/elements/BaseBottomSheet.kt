@@ -2,6 +2,7 @@ package com.zagirlek.ui.components.elements
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.BottomSheetDefaults
@@ -28,6 +29,7 @@ fun BaseBottomSheet(
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
     title: String? = null,
+    fillContentHeight: Boolean = false,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -42,7 +44,9 @@ fun BaseBottomSheet(
         dragHandle = { BottomSheetDefaults.DragHandle() },
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (fillContentHeight) Modifier.fillMaxHeight() else Modifier),
         ) {
             title?.let { value ->
                 Text(

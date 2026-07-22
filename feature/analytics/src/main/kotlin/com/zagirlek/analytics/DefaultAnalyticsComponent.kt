@@ -54,7 +54,7 @@ class DefaultAnalyticsComponent(
     override fun accept(intent: AnalyticsIntent) {
         when (intent) {
             AnalyticsIntent.BackClicked -> onBackRequested()
-            AnalyticsIntent.RetryClicked -> loadAnalytics()
+            AnalyticsIntent.RetryClicked -> loadAnalytics(isRefresh = true)
             AnalyticsIntent.RefreshRequested -> loadAnalytics(isRefresh = true)
             AnalyticsIntent.TypeFilterClicked -> showFilterSheet(AnalyticsFilterSheet.Type)
             AnalyticsIntent.PeriodFilterClicked -> showFilterSheet(AnalyticsFilterSheet.Period)
@@ -65,7 +65,7 @@ class DefaultAnalyticsComponent(
             is AnalyticsIntent.TypeApplied -> updateFilters(
                 filters.copy(
                     type = intent.type,
-                    categoryIds = emptySet(),
+                    categoryIds = null,
                 ),
             )
             is AnalyticsIntent.PeriodPresetApplied -> loadAnalytics(
@@ -116,12 +116,6 @@ class DefaultAnalyticsComponent(
             }
 
             componentScope.launch {
-                if (mutation is AnalyticsMutation.Error) {
-                    mutableEffects.tryEmit(AnalyticsEffect.ShowRetryableError(mutation.message))
-                }
-                if (mutation is AnalyticsMutation.RefreshFailed) {
-                    mutableEffects.tryEmit(AnalyticsEffect.ShowRetryableError(mutation.message))
-                }
                 mutation.reduce(mutableState)
             }
         }
@@ -163,7 +157,7 @@ class DefaultAnalyticsComponent(
     private fun filteredTransactions(): List<TransactionHistoryEntry> = loadedTransactions
         .asSequence()
         .filter { filters.type == null || it.category.type == filters.type }
-        .filter { filters.categoryIds.isEmpty() || it.category.id in filters.categoryIds }
+        .filter { filters.categoryIds == null || it.category.id in filters.categoryIds!! }
         .filter { filters.accountId == null || it.accountId == filters.accountId }
         .sortedByDescending(TransactionHistoryEntry::occurredAt)
         .toList()

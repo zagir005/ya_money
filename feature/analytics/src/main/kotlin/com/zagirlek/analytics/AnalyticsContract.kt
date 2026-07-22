@@ -10,7 +10,6 @@ import com.zagirlek.ui.mvi.Effect
 import com.zagirlek.ui.mvi.Intent
 import com.zagirlek.ui.mvi.Mutation
 import com.zagirlek.ui.mvi.MviReducer
-import com.zagirlek.ui.mvi.RetryableErrorEffect
 import com.zagirlek.ui.mvi.State
 import java.time.LocalDate
 
@@ -83,10 +82,6 @@ sealed interface AnalyticsMutation : Mutation {
 }
 
 sealed interface AnalyticsEffect : Effect {
-    data class ShowRetryableError(
-        override val message: String,
-    ) : AnalyticsEffect, RetryableErrorEffect
-
     data class ShowFilterSheet(val sheet: AnalyticsFilterSheet) : AnalyticsEffect
 
     data object ShowChartDetails : AnalyticsEffect
@@ -119,7 +114,7 @@ enum class AnalyticsPeriodPreset {
 
 data class AnalyticsFilters(
     val type: TransactionType? = TransactionType.Expense,
-    val categoryIds: Set<Int> = emptySet(),
+    val categoryIds: Set<Int>? = null,
     val accountId: AccountId? = null,
 )
 

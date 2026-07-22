@@ -9,11 +9,10 @@ import com.zagirlek.ui.formatter.DefaultMoneyFormatter
 import com.zagirlek.ui.formatter.Money
 import com.zagirlek.ui.formatter.MoneyFormatter
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
@@ -30,9 +29,7 @@ class DefaultAccountsComponent(
     private val mutableState = MutableStateFlow<AccountsState>(AccountsState.Loading)
 
     override val state: StateFlow<AccountsState> = mutableState.asStateFlow()
-    private val mutableEffects = MutableSharedFlow<AccountsEffect>(extraBufferCapacity = 1)
-
-    override val effects: Flow<AccountsEffect> = mutableEffects.asSharedFlow()
+    override val effects: Flow<AccountsEffect> = emptyFlow()
 
     private var loadJob: Job? = null
 
@@ -47,7 +44,7 @@ class DefaultAccountsComponent(
             AccountsIntent.AnalyticsClicked -> Unit
             AccountsIntent.SettingsClicked -> Unit
             AccountsIntent.AddClicked -> Unit
-            AccountsIntent.RetryClicked -> loadAccounts()
+            AccountsIntent.RetryClicked -> loadAccounts(isRefresh = true)
             AccountsIntent.RefreshRequested -> loadAccounts(isRefresh = true)
         }
     }
@@ -76,9 +73,6 @@ class DefaultAccountsComponent(
             }
 
             componentScope.launch {
-                if (mutation is AccountsMutation.RefreshFailed) {
-                    mutableEffects.tryEmit(AccountsEffect.ShowRetryableError(mutation.message))
-                }
                 mutation.reduce(mutableState)
             }
         }
