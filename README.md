@@ -18,3 +18,12 @@ Presentation-слой построен на MVI, а зависимости со�
 - Decompose
 - Coroutines и Flow
 - Ручной DI
+
+## API-ключ
+
+Для запросов к Shmr Finance API создай файл `local.properties` в
+корне проекта и добавь в него:
+
+```properties
+financeApiToken=ваш_токен
+```
