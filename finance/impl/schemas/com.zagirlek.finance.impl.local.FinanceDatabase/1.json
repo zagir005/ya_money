@@ -1,0 +1,442 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "eab13e00dbcc66484079c3f22d05d9d6",
+    "entities": [
+      {
+        "tableName": "accounts",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`client_id` TEXT NOT NULL, `remote_id` INTEGER, `name` TEXT NOT NULL, `emoji` TEXT NOT NULL, `balance` TEXT NOT NULL, `currency` TEXT NOT NULL, `created_at_millis` INTEGER NOT NULL, `updated_at_millis` INTEGER NOT NULL, `updated_at_local_millis` INTEGER NOT NULL, `sync_status` TEXT NOT NULL, PRIMARY KEY(`client_id`))",
+        "fields": [
+          {
+            "fieldPath": "clientId",
+            "columnName": "client_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "remoteId",
+            "columnName": "remote_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "emoji",
+            "columnName": "emoji",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "balance",
+            "columnName": "balance",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currency",
+            "columnName": "currency",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtMillis",
+            "columnName": "created_at_millis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtMillis",
+            "columnName": "updated_at_millis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtLocalMillis",
+            "columnName": "updated_at_local_millis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "syncStatus",
+            "columnName": "sync_status",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "client_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_accounts_remote_id",
+            "unique": true,
+            "columnNames": [
+              "remote_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_accounts_remote_id` ON `${TABLE_NAME}` (`remote_id`)"
+          }
+        ]
+      },
+      {
+        "tableName": "categories",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `name` TEXT NOT NULL, `emoji` TEXT NOT NULL, `is_income` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "emoji",
+            "columnName": "emoji",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isIncome",
+            "columnName": "is_income",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "transactions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`client_id` TEXT NOT NULL, `remote_id` INTEGER, `account_client_id` TEXT NOT NULL, `category_id` INTEGER NOT NULL, `amount` TEXT NOT NULL, `currency` TEXT NOT NULL, `transaction_date_millis` INTEGER NOT NULL, `comment` TEXT, `created_at_millis` INTEGER NOT NULL, `updated_at_millis` INTEGER NOT NULL, `updated_at_local_millis` INTEGER NOT NULL, `sync_status` TEXT NOT NULL, PRIMARY KEY(`client_id`), FOREIGN KEY(`account_client_id`) REFERENCES `accounts`(`client_id`) ON UPDATE CASCADE ON DELETE CASCADE , FOREIGN KEY(`category_id`) REFERENCES `categories`(`id`) ON UPDATE CASCADE ON DELETE RESTRICT )",
+        "fields": [
+          {
+            "fieldPath": "clientId",
+            "columnName": "client_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "remoteId",
+            "columnName": "remote_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "accountClientId",
+            "columnName": "account_client_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "categoryId",
+            "columnName": "category_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "amount",
+            "columnName": "amount",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currency",
+            "columnName": "currency",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "transactionDateMillis",
+            "columnName": "transaction_date_millis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "comment",
+            "columnName": "comment",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAtMillis",
+            "columnName": "created_at_millis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtMillis",
+            "columnName": "updated_at_millis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtLocalMillis",
+            "columnName": "updated_at_local_millis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "syncStatus",
+            "columnName": "sync_status",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "client_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_transactions_remote_id",
+            "unique": true,
+            "columnNames": [
+              "remote_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_transactions_remote_id` ON `${TABLE_NAME}` (`remote_id`)"
+          },
+          {
+            "name": "index_transactions_account_client_id",
+            "unique": false,
+            "columnNames": [
+              "account_client_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_transactions_account_client_id` ON `${TABLE_NAME}` (`account_client_id`)"
+          },
+          {
+            "name": "index_transactions_category_id",
+            "unique": false,
+            "columnNames": [
+              "category_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_transactions_category_id` ON `${TABLE_NAME}` (`category_id`)"
+          },
+          {
+            "name": "index_transactions_transaction_date_millis",
+            "unique": false,
+            "columnNames": [
+              "transaction_date_millis"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_transactions_transaction_date_millis` ON `${TABLE_NAME}` (`transaction_date_millis`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "accounts",
+            "onDelete": "CASCADE",
+            "onUpdate": "CASCADE",
+            "columns": [
+              "account_client_id"
+            ],
+            "referencedColumns": [
+              "client_id"
+            ]
+          },
+          {
+            "table": "categories",
+            "onDelete": "RESTRICT",
+            "onUpdate": "CASCADE",
+            "columns": [
+              "category_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "pending_operations",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `entity_type` TEXT NOT NULL, `operation_type` TEXT NOT NULL, `entity_client_id` TEXT NOT NULL, `payload_json` TEXT NOT NULL, `depends_on_operation_id` TEXT, `status` TEXT NOT NULL, `attempt_count` INTEGER NOT NULL, `last_error` TEXT, `created_at_millis` INTEGER NOT NULL, `next_attempt_at_millis` INTEGER, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "entityType",
+            "columnName": "entity_type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "operationType",
+            "columnName": "operation_type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "entityClientId",
+            "columnName": "entity_client_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "payloadJson",
+            "columnName": "payload_json",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dependsOnOperationId",
+            "columnName": "depends_on_operation_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "attemptCount",
+            "columnName": "attempt_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastError",
+            "columnName": "last_error",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAtMillis",
+            "columnName": "created_at_millis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nextAttemptAtMillis",
+            "columnName": "next_attempt_at_millis",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_pending_operations_entity_client_id",
+            "unique": false,
+            "columnNames": [
+              "entity_client_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_pending_operations_entity_client_id` ON `${TABLE_NAME}` (`entity_client_id`)"
+          },
+          {
+            "name": "index_pending_operations_depends_on_operation_id",
+            "unique": false,
+            "columnNames": [
+              "depends_on_operation_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_pending_operations_depends_on_operation_id` ON `${TABLE_NAME}` (`depends_on_operation_id`)"
+          },
+          {
+            "name": "index_pending_operations_status_next_attempt_at_millis",
+            "unique": false,
+            "columnNames": [
+              "status",
+              "next_attempt_at_millis"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_pending_operations_status_next_attempt_at_millis` ON `${TABLE_NAME}` (`status`, `next_attempt_at_millis`)"
+          }
+        ]
+      },
+      {
+        "tableName": "sync_windows",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`account_client_id` TEXT NOT NULL, `start_epoch_day` INTEGER NOT NULL, `end_epoch_day` INTEGER NOT NULL, `last_synced_at_millis` INTEGER NOT NULL, PRIMARY KEY(`account_client_id`, `start_epoch_day`, `end_epoch_day`), FOREIGN KEY(`account_client_id`) REFERENCES `accounts`(`client_id`) ON UPDATE CASCADE ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "accountClientId",
+            "columnName": "account_client_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startEpochDay",
+            "columnName": "start_epoch_day",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endEpochDay",
+            "columnName": "end_epoch_day",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSyncedAtMillis",
+            "columnName": "last_synced_at_millis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "account_client_id",
+            "start_epoch_day",
+            "end_epoch_day"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_sync_windows_account_client_id",
+            "unique": false,
+            "columnNames": [
+              "account_client_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_sync_windows_account_client_id` ON `${TABLE_NAME}` (`account_client_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "accounts",
+            "onDelete": "CASCADE",
+            "onUpdate": "CASCADE",
+            "columns": [
+              "account_client_id"
+            ],
+            "referencedColumns": [
+              "client_id"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'eab13e00dbcc66484079c3f22d05d9d6')"
+    ]
+  }
+}

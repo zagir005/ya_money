@@ -212,7 +212,7 @@ object AnalyticsReducer : MviReducer<AnalyticsState, AnalyticsMutation> {
             is AnalyticsState.Empty -> state.copy(filters = mutation.filters)
             is AnalyticsState.Error -> state.copy(filters = mutation.filters)
         }
-        [AnalyticsMutation.Refreshing -> when (state) {
+        AnalyticsMutation.Refreshing -> when (state) {
             is AnalyticsState.Content -> state.copy(isRefreshing = true, historyError = null)
             is AnalyticsState.Empty -> state.copy(isRefreshing = true, historyError = null)
             else -> state
