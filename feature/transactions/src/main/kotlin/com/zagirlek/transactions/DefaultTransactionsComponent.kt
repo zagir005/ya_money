@@ -6,12 +6,13 @@ import com.zagirlek.finance.api.expense.ExpensesRepository
 import com.zagirlek.finance.api.error.toNetworkError
 import com.zagirlek.finance.api.income.Income
 import com.zagirlek.finance.api.income.IncomesRepository
+import com.zagirlek.finance.api.money.CurrencyCode
+import com.zagirlek.finance.api.money.Money
 import com.zagirlek.finance.api.transaction.TransactionPeriod
 import com.zagirlek.ui.cmp.MviComponent
-import com.zagirlek.ui.formatter.Currency
 import com.zagirlek.ui.formatter.DefaultMoneyFormatter
-import com.zagirlek.ui.formatter.Money
 import com.zagirlek.ui.formatter.MoneyFormatter
+import com.zagirlek.ui.formatter.format
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -95,13 +96,13 @@ class DefaultTransactionsComponent(
     private fun List<Expense>.toExpensesMutation(): TransactionsMutation = when {
         isEmpty() -> TransactionsMutation.Empty
         else -> TransactionsMutation.Content(
-            total = Money(sumOf(Expense::amount), Currency.Ruble).format(moneyFormatter),
+            total = Money(sumOf(Expense::amount), CurrencyCode.RUB).format(moneyFormatter),
             items = map { expense ->
                 TransactionItemUi(
                     id = expense.id.value,
                     lead = expense.type.emoji,
                     content = expense.description ?: expense.type.name,
-                    trail = Money(expense.amount, Currency.Ruble).format(moneyFormatter),
+                    trail = Money(expense.amount, CurrencyCode.RUB).format(moneyFormatter),
                 )
             },
         )
@@ -110,13 +111,13 @@ class DefaultTransactionsComponent(
     private fun List<Income>.toIncomesMutation(): TransactionsMutation = when {
         isEmpty() -> TransactionsMutation.Empty
         else -> TransactionsMutation.Content(
-            total = Money(sumOf(Income::amount), Currency.Ruble).format(moneyFormatter),
+            total = Money(sumOf(Income::amount), CurrencyCode.RUB).format(moneyFormatter),
             items = map { income ->
                 TransactionItemUi(
                     id = income.id.value,
                     lead = income.type.emoji,
                     content = income.description ?: income.type.name,
-                    trail = Money(income.amount, Currency.Ruble).format(moneyFormatter)
+                    trail = Money(income.amount, CurrencyCode.RUB).format(moneyFormatter),
                 )
             },
         )

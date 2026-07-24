@@ -4,11 +4,11 @@ import com.arkivanov.decompose.ComponentContext
 import com.zagirlek.finance.api.account.Account
 import com.zagirlek.finance.api.account.AccountsRepository
 import com.zagirlek.finance.api.error.toNetworkError
+import com.zagirlek.finance.api.money.Money
 import com.zagirlek.ui.cmp.MviComponent
-import com.zagirlek.ui.formatter.Currency
 import com.zagirlek.ui.formatter.DefaultMoneyFormatter
-import com.zagirlek.ui.formatter.Money
 import com.zagirlek.ui.formatter.MoneyFormatter
+import com.zagirlek.ui.formatter.format
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -82,13 +82,21 @@ class DefaultAccountsComponent(
     private fun List<Account>.toMutation(): AccountsMutation = when {
         isEmpty() -> AccountsMutation.Empty
         else -> AccountsMutation.Content(
-            total = Money(sumOf(Account::balance), Currency.Ruble).format(moneyFormatter),
+            total = groupBy { account -> account.money.currency }
+                .values
+                .map { accounts ->
+                    Money(
+                        amount = accounts.sumOf { account -> account.money.amount },
+                        currency = accounts.first().money.currency,
+                    ).format(moneyFormatter)
+                }
+                .joinToString(separator = " · "),
             items = map { account ->
                 AccountItemUi(
                     id = account.id.value,
                     lead = account.emoji,
                     content = account.name,
-                    trail = Money(account.balance, Currency.Ruble).format(moneyFormatter),
+                    trail = account.money.format(moneyFormatter),
                 )
             },
         )

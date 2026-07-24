@@ -3,14 +3,15 @@ package com.zagirlek.analytics
 import com.arkivanov.decompose.ComponentContext
 import com.zagirlek.finance.api.account.AccountsRepository
 import com.zagirlek.finance.api.error.toNetworkError
+import com.zagirlek.finance.api.money.CurrencyCode
+import com.zagirlek.finance.api.money.Money
 import com.zagirlek.finance.api.transaction.TransactionHistoryEntry
 import com.zagirlek.finance.api.transaction.TransactionHistoryRepository
 import com.zagirlek.finance.api.transaction.TransactionPeriod
 import com.zagirlek.ui.cmp.MviComponent
-import com.zagirlek.ui.formatter.Currency
 import com.zagirlek.ui.formatter.DefaultMoneyFormatter
-import com.zagirlek.ui.formatter.Money
 import com.zagirlek.ui.formatter.MoneyFormatter
+import com.zagirlek.ui.formatter.format
 import com.zagirlek.analytics.ui.summary.AnalyticsCategorySummary
 import com.zagirlek.analytics.ui.resolveAccountEmoji
 import com.zagirlek.analytics.ui.resolveCategoryEmoji
@@ -296,7 +297,7 @@ class DefaultAnalyticsComponent(
                 title = transaction.description?.takeIf(String::isNotBlank) ?: transaction.category.name,
                 subtitle = accountNames[transaction.accountId] ?: UNKNOWN_ACCOUNT_NAME,
                 emoji = resolveCategoryEmoji(transaction.category.id, transaction.category.emoji),
-                amount = Money(transaction.amount, Currency.Ruble).format(moneyFormatter),
+                amount = Money(transaction.amount, CurrencyCode.RUB).format(moneyFormatter),
             )
         }
     }
@@ -323,14 +324,14 @@ class DefaultAnalyticsComponent(
                     categoryName = category.name,
                     categoryEmoji = category.emoji,
                     amount = amount,
-                    amountText = Money(amount, Currency.Ruble).format(moneyFormatter),
+                    amountText = Money(amount, CurrencyCode.RUB).format(moneyFormatter),
                 )
             }
             .sortedByDescending(AnalyticsCategorySummary::amount)
 
         val total = transactions.sumOf(TransactionHistoryEntry::amount)
         return AnalyticsSummaryUi(
-            total = Money(total, Currency.Ruble).format(moneyFormatter),
+            total = Money(total, CurrencyCode.RUB).format(moneyFormatter),
             categories = categories,
         )
     }

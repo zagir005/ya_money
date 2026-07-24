@@ -27,6 +27,7 @@ android {
 dependencies {
     implementation(libs.decompose)
     implementation(libs.essenty.lifecycle.coroutines)
+    implementation(projects.finance.api)
     implementation(projects.core.systemdesign)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.foundation)

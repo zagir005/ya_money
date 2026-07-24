@@ -5,14 +5,9 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 
-@JvmInline
-value class TransactionId(val value: String)
-
-enum class TransactionType {
-    Expense,
-    Income,
-}
-
+@Deprecated(
+    message = "Use Category from finance.api.category with the unified Transaction model.",
+)
 data class TransactionCategory(
     val id: Int,
     val name: String,
@@ -20,6 +15,9 @@ data class TransactionCategory(
     val type: TransactionType,
 )
 
+@Deprecated(
+    message = "Use Transaction and TransactionsRepository.",
+)
 data class TransactionHistoryEntry(
     val id: TransactionId,
     val accountId: AccountId,
@@ -31,6 +29,9 @@ data class TransactionHistoryEntry(
     val description: String?,
 )
 
+@Deprecated(
+    message = "Use TransactionsRepository.",
+)
 interface TransactionHistoryRepository {
     suspend fun getHistory(
         period: TransactionPeriod = TransactionPeriod.currentMonthToDate(),

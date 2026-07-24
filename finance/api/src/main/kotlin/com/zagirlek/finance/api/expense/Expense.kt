@@ -6,17 +6,21 @@ import java.time.Instant
 import java.time.LocalDate
 
 @JvmInline
+@Deprecated("Use TransactionId.")
 value class ExpenseId(val value: String)
 
 @JvmInline
+@Deprecated("Use CategoryId.")
 value class ExpenseTypeId(val value: String)
 
+@Deprecated("Use Category.")
 data class ExpenseType(
     val id: ExpenseTypeId,
     val name: String,
     val emoji: String
 )
 
+@Deprecated("Use the unified Transaction model.")
 data class Expense(
     val id: ExpenseId,
     val accountId: AccountId,

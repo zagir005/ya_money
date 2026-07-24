@@ -1,5 +1,7 @@
 package com.zagirlek.ui.formatter
 
+import com.zagirlek.finance.api.money.CurrencyCode
+import com.zagirlek.finance.api.money.Money
 import java.math.BigDecimal
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
@@ -17,6 +19,13 @@ class DefaultMoneyFormatter : MoneyFormatter {
             groupingSeparator = '\u00A0'
         }
 
-        return DecimalFormat("#,##0", symbols).format(amount)
+        return DecimalFormat("#,##0.##", symbols).format(amount)
+    }
+
+    private fun CurrencyCode.toSymbol(): String = when (this) {
+        CurrencyCode.RUB -> "₽"
+        CurrencyCode.USD -> "\$"
+        CurrencyCode.EUR -> "€"
+        else -> value
     }
 }

@@ -5,3 +5,9 @@ plugins {
 kotlin {
     jvmToolchain(11)
 }
+
+dependencies {
+    implementation(libs.kotlinx.coroutines.core)
+
+    testImplementation(libs.junit)
+}

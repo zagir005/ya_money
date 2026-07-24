@@ -1,6 +1,7 @@
 package com.zagirlek.finance.impl.account.remote
 
 import com.zagirlek.finance.api.error.FinanceNetworkException
+import com.zagirlek.finance.api.money.CurrencyCode
 import java.math.BigDecimal
 import java.time.Instant
 import org.junit.Assert.assertEquals
@@ -14,8 +15,8 @@ class AccountMapperTest {
         val account = accountDto().toDomain()
 
         assertEquals("42", account.id.value)
-        assertEquals(BigDecimal("1234.56"), account.balance)
-        assertEquals("RUB", account.currency)
+        assertEquals(BigDecimal("1234.56"), account.money.amount)
+        assertEquals(CurrencyCode.RUB, account.money.currency)
         assertEquals(Instant.parse("2026-07-21T10:15:30Z"), account.createdAt)
         assertEquals(Instant.parse("2026-07-21T11:15:30Z"), account.updatedAt)
     }

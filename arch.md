@@ -6,18 +6,22 @@
 
 ## 1. Текущий scope
 
-Текущая итерация приложения содержит четыре портретных экрана:
+Текущая итерация приложения — ДЗ3. Она завершает основной финансовый сценарий:
 
-1. список расходов;
-2. список доходов;
-3. список счетов.
-4. экран аналитики с историей операций и фильтрами.
+1. списки расходов и доходов;
+2. список счетов;
+3. аналитика с историей и фильтрами;
+4. добавление и редактирование расхода или дохода;
+5. добавление и редактирование счёта, включая корректировку баланса;
+6. просмотр ранее загруженных данных и создание операций без сети;
+7. синхронизация локальных изменений при появлении сети и периодически через
+   WorkManager.
 
-В эту итерацию входит получение данных по сети для счетов, расходов, доходов и
-аналитики. Начинаем со списка счетов; реализация следующих экранов использует
-ту же границу данных. Добавление и редактирование операций, настройки, PIN,
-биометрия и Room пока не входят в scope. Архитектура оставляет для них границы,
-но код «на будущее» заранее не создаётся.
+Room является локальным source of truth. Сеть больше не является источником
+данных для UI: remote-ответы и локальные изменения сначала записываются в Room,
+после чего экраны получают обновлённые domain-модели через `Flow`.
+
+Настройки, PIN и биометрия по-прежнему не входят в scope.
 
 Сейчас поддерживается только светлая тема. `MainActivity` зафиксирована в
 portrait-ориентации; landscape-layout и тёмная палитра появятся отдельными
@@ -37,9 +41,9 @@ portrait-ориентации; landscape-layout и тёмная палитра �
 - Список счетов — самостоятельная feature `:feature:accounts`.
 - Сеть реализуется внутри `:finance:impl`: HTTP-клиент, DTO, mapper-ы и
   remote data source не пересекают границу этого модуля.
-- На этапе ДЗ2 remote repository является источником данных. Room и
-  offline-first появятся отдельным изменением после возникновения требования
-  к офлайн-данным.
+- На этапе ДЗ3 используется offline-first: Room — source of truth, remote API —
+  источник синхронизации, а локальная очередь хранит ожидающие отправки
+  изменения.
 - Повторно используется визуальный каркас, но не один `HomeStore` для
   транзакций и счетов.
 
@@ -70,6 +74,7 @@ flowchart TD
     Accounts --> Ui
     Accounts --> SystemDesign
 
+    Analytics --> FinanceApi
     Analytics --> SystemDesign
     Analytics --> Ui
 
@@ -86,10 +91,15 @@ flowchart TD
 - корневая тема;
 - ручной `AppDependencies`;
 - `RootComponent` и `MainComponent`;
+- конфигурация WorkManager, `WorkerFactory` и `FinanceSyncWorker`;
+- запуск синхронизации при старте приложения и постановка уникальной
+  периодической работы;
 - связывание concrete-реализаций из `:finance:impl` с интерфейсами из
   `:finance:api`.
 
-В `:app` нет бизнес-логики, DTO, Entity, DAO и реализации отдельной feature.
+`FinanceSyncWorker` не содержит алгоритм синхронизации: он вызывает
+`FinanceSyncCoordinator` из `:finance:impl`. В `:app` нет бизнес-логики, DTO,
+Entity, DAO и реализации отдельной feature.
 
 ### `:finance:api`
 
@@ -110,39 +120,46 @@ feature-модулей. Он собран как Kotlin/JVM-модуль: не �
 Android-зависимости и инструментальные Android-тесты.
 
 Репозитории группируются по устойчивому предметному контракту, а не по экрану:
-`TransactionsRepository`, `AccountsRepository`, `CategoriesRepository`. Операция,
-использующая несколько сущностей, не заставляет feature импортировать другую
-feature: она оформляется как use case в `:finance:api`, а реализация остаётся в
-`:finance:impl`.
+`TransactionsRepository`, `AccountsRepository`, `CategoriesRepository`. Их
+методы чтения возвращают `Flow`: конкретная реализация наблюдает Room, но
+контракт не раскрывает способ хранения. Запись выражается domain-командами
+`CreateTransaction`, `UpdateTransaction`, `CreateAccount`,
+`UpdateAccount` и `AdjustAccountBalance`.
 
-Для объединённой истории используется `TransactionHistoryRepository` из
-`:finance:api`, а не отдельные запросы расходов и доходов в аналитической
-feature. Его `getHistory()` принимает `TransactionPeriod`, по умолчанию — с
-первого дня текущего месяца по текущую дату. Repository возвращает общие
-domain-операции с типом, счётом, категорией, точной суммой и датой;
-`RemoteTransactionHistoryRepository` получает счета один раз и объединяет
-ответы истории по ним.
+Локально созданная сущность получает стабильный client ID до ответа сервера.
+Domain ID не предполагает, что значение уже является серверным integer ID.
+Связь client ID с remote ID остаётся деталью `:finance:impl`.
+
+Для объединённой истории используется `TransactionsRepository.observe(period)`,
+а не отдельные запросы расходов и доходов в аналитической feature. Тип операции
+сохраняется в общей domain-модели `Transaction`; расходы и доходы являются
+фильтрами одной коллекции.
 
 ### `:finance:impl`
 
 Скрывает способы получения и сохранения финансовых данных за контрактами
 `:finance:api`.
 
-Содержимое по мере появления требований:
+Содержимое:
 
-- fake-репозитории для текущей итерации;
-- repository implementations;
-- remote data source, Ktor HTTP-клиент и финансовые DTO;
-- финансовые DTO, Entity и mapper-ы;
-- логика синхронизации и offline-first repository.
+- `OfflineFirstAccountsRepository`, `OfflineFirstTransactionsRepository` и
+  `OfflineFirstCategoriesRepository`;
+- Room database, финансовые Entity, DAO, converters и local data source;
+- remote data source, Ktor HTTP-клиент, финансовые DTO и mapper-ы;
+- локальная очередь ожидающих операций;
+- `FinanceSyncCoordinator`, выполняющий отправку очереди и обновление кэша;
+- fake-репозитории только для preview и изолированных тестов.
 
 DTO, Ktor response, Room Entity, DAO и детали синхронизации не пересекают
 границу `:finance:impl`.
 
-HTTP-клиент остаётся в `:finance:impl`, пока его единственный потребитель —
-финансовые remote data source. Отдельный `:core:network` не создаётся заранее:
-он появится, только если транспортная инфраструктура понадобится нескольким
-независимым domain implementation-модулям.
+`:finance:impl` становится Android library, поскольку владеет Room. Отдельные
+`:core:database` и `:core:network` не создаются: сейчас и Room, и HTTP-клиент
+обслуживают только финансовый implementation-модуль. Общие core-модули появятся,
+если инфраструктура получит второй независимый domain-потребитель.
+
+WorkManager остаётся в `:app`: это механизм запуска. Алгоритм, порядок операций
+и политика синхронизации находятся в `:finance:impl`.
 
 ### `:core:systemdesign`
 
@@ -187,8 +204,10 @@ targets. Новый устойчивый размер сначала добав�
 Presentation вертикального среза транзакций:
 
 - расход и доход как независимые экземпляры одного `TransactionsComponent`;
+- `TransactionEditorComponent` с режимами создания и редактирования;
+- форма суммы, категории, даты, времени, счёта и комментария;
 - MVI contract, Component, reducer, UI mapper и Compose screen;
-- callbacks наружу для будущей навигации.
+- callbacks наружу для открытия редактора и возврата после сохранения.
 
 Вкладки расходов и доходов используют одну реализацию, но у каждой свой
 экземпляр Component: сохраняются независимые дата, состояние загрузки и
@@ -200,7 +219,9 @@ Presentation вертикального среза счетов:
 
 - `AccountsComponent`, собственный MVI contract, reducer и UI mapper;
 - экран списка и общего баланса;
-- callbacks для будущего перехода к счёту.
+- `AccountEditorComponent` для создания и редактирования имени, emoji и валюты;
+- `BalanceAdjustmentComponent` для корректировки баланса;
+- callbacks для переходов к редактору и возврата после сохранения.
 
 Feature может использовать общий stateless layout, но не Component транзакций.
 
@@ -250,8 +271,9 @@ Presentation вертикального среза аналитики:
 ### Будущие core-модули
 
 `core:common`, `core:network`, `core:database` и `core:security` не создаются
-заранее. Они появляются только при конкретном потребителе и остаются
-техническими:
+заранее. Room и Ktor пока остаются в `:finance:impl`, потому что у них один
+domain-потребитель. Технический core-модуль появляется только со вторым
+независимым потребителем:
 
 - `core:common` — маленькие platform-agnostic утилиты, действительно нужные
   нескольким независимым модулям; не место для доменных моделей и репозиториев;
@@ -283,89 +305,155 @@ repository implementation.
 9. Зависимости передаются через конструктор. `ComponentContext`, ID экрана и
    callbacks — runtime-параметры, а не зависимости контейнера.
 
-## 5. Данные, сеть и будущий offline-first
+## 5. Данные, сеть и offline-first
 
-На этапе ДЗ2 implementation предоставляет remote-репозитории. Для счетов
-`RemoteAccountsRepository` вызывает `GET /accounts`, преобразует `AccountDto`
-в domain `Account` и возвращает результат через `AccountsRepository`. Compose,
-feature-модули и `:finance:api` не знают об HTTP, JSON или bearer-токене.
-
-Сетевые вызовы и тяжёлая обработка выполняются вне main thread. Component
-запускает загрузку, преобразует domain-результат в mutation и публикует state;
-repository отвечает за IO, HTTP-ошибки и mapping transport-моделей. Ошибки сети,
-неавторизованный доступ и некорректный ответ не выходят из repository как DTO
-или HTTP-исключения: они преобразуются в типизированный immutable
-`NetworkError`. Feature хранит эту ошибку в MVI State и показывает
-единый `NetworkErrorAlert` из `:core:ui` с понятным текстом и Retry. При ошибке
-pull-to-refresh уже загруженный контент сохраняется, а alert заменяет только
-список соответствующего экрана; на аналитике остаются доступными диаграмма и
-фильтры, включая случай первичной сетевой ошибки.
-
-Swagger предоставляет операции истории по отдельному счёту. Для аналитики с
-фильтром «Все счета» repository получает список счетов и историю по каждому
-выбранному счёту, затем возвращает общий набор domain-операций. Фильтрация,
-сортировка и агрегация не используют сетевые модели.
-
-После появления Room будет использована схема local source of truth:
+### Local source of truth
 
 ```mermaid
 flowchart LR
-    UI["Compose / MVI Component"] --> Api["Repository contract\nfinance:api"]
-    Api --> Repository["OfflineFirstRepository\nfinance:impl"]
-    Repository --> Local["Room local source"]
-    Repository --> Remote["Ktor remote source"]
-    Remote --> Repository
-    Repository --> Local
-    Local --> Repository
+    UI["Compose"] --> Component["MVI Component"]
+    Component --> Api["finance:api"]
+    Api --> Repository["OfflineFirstRepository"]
+    Repository --> Room["Room / Flow"]
+    Repository --> Queue["Pending operations"]
+    Coordinator["FinanceSyncCoordinator"] --> Queue
+    Coordinator --> Remote["Ktor / Swagger API"]
+    Remote --> Coordinator
+    Coordinator --> Room
+    Room --> Repository
 ```
 
-- UI читает данные через contract, а не напрямую из Room или сети.
-- Local storage — source of truth для отображения; repository публикует его
-  `Flow`.
-- Сеть обновляет local storage, после чего UI получает новый доменный результат.
-- Стратегии конфликта, повторов, tombstone-удалений и идемпотентности появятся
-  только с соответствующей серверной поддержкой. Текущий Swagger этого не
-  определяет, поэтому их нельзя корректно «додумать» в первой версии.
+- UI никогда не читает сеть напрямую и не выбирает online/offline ветку.
+- Методы наблюдения repository возвращают domain-модели из Room через `Flow`.
+- Remote-ответ считается применённым только после успешной записи в Room.
+- Refresh не заменяет контент loading-состоянием: сохранённые данные остаются
+  видимыми, пока repository обновляет локальную БД.
+- Если кэша ещё нет и сеть недоступна, экран показывает устойчивое empty/error
+  состояние с Retry.
 
-Финансовые значения не используют `Double`/`Float`: `Money` хранит точное
-числовое значение. Денежные строки API преобразуются на границе impl/API.
-`emoji` — `String`, не `Char`; серверный `isIncome` превращается в
-`TransactionType` на этой же границе.
+### Таблицы
 
-История расходов и доходов запрашивается явно с domain `TransactionPeriod`.
-Период по умолчанию — с первого дня текущего месяца по текущую дату; обе даты
-передаются как query-параметры каждому запросу истории счёта. API предоставляет
-историю только по одному счёту, поэтому remote repository сначала получает
-счета, затем объединяет истории всех счетов и сортирует по `transactionDate` по
-убыванию. `TransactionHistoryRepository` сохраняет тип операции на domain
-границе, а `Expense` и `Income` остаются специализированными контрактами
-экранов списков. Domain-операции хранят точный `occurredAt`; `occurredOn`
-выводится из него для сценариев, где нужна только календарная дата.
+`accounts` хранит client ID, nullable remote ID, имя, emoji, точный баланс,
+валюту, локальное время изменения и внутренний sync status.
+
+`transactions` хранит client ID, nullable remote ID, client ID счёта, category
+ID, точную сумму, `transactionDate`, комментарий, тип операции и sync status.
+
+`categories` является локальным справочником. Категории приходят с backend,
+пользователь их не создаёт и не редактирует.
+
+`pending_operations` хранит durable outbox:
+
+- тип сущности и операции (`ACCOUNT`/`TRANSACTION`, `CREATE`/`UPDATE`);
+- client ID сущности;
+- полный сериализованный payload последнего локального состояния;
+- необязательную зависимость от другой pending-операции;
+- число попыток, последнюю ошибку и время создания.
+
+`sync_windows` хранит загруженные диапазоны истории по счетам. Backend не
+предоставляет общий журнал изменений или `updatedSince`; история доступна только
+через `/transactions/account/{accountId}/period`. Поэтому синхронизация повторно
+получает активные и ранее закэшированные периоды и делает upsert по remote ID.
+
+Финансовые Entity, DAO, converters, outbox и sync status являются деталями
+`:finance:impl` и не выходят в domain API.
+
+### Локальная запись
+
+Создание или редактирование выполняется одной Room-транзакцией:
+
+1. записать новое состояние сущности;
+2. добавить или объединить запись durable outbox;
+3. обновить локальную проекцию баланса;
+4. завершить транзакцию, после чего Room `Flow` обновит UI.
+
+Локально созданная сущность получает client ID. После успешного `POST` remote ID
+записывается рядом с ним; client ID не меняется, поэтому ссылки и ключи Compose
+остаются стабильными.
+
+Повторное редактирование ещё не отправленной сущности обновляет payload
+существующего `CREATE`, а не создаёт последовательность `CREATE` + `UPDATE`.
+Транзакция, созданная на локальном счёте, зависит от отправки этого счёта и
+получения его remote ID.
+
+Локальная проекция баланса учитывает тип категории: расход уменьшает баланс,
+доход увеличивает. При редактировании операции сначала отменяется влияние
+старого состояния, затем применяется новое. После remote-синхронизации
+канонический баланс из `GET /accounts` заменяет локальную проекцию.
+
+### Remote API и порядок синхронизации
+
+`FinanceSyncCoordinator` выполняет:
+
+1. отправку ожидающих create/update счетов;
+2. разрешение remote ID для зависимых операций;
+3. отправку ожидающих create/update транзакций;
+4. `GET /categories` и upsert справочника;
+5. `GET /accounts` и upsert счетов;
+6. загрузку истории каждого remote-счёта для зарегистрированных
+   `sync_windows`;
+7. атомарное обновление Room и удаление подтверждённых outbox-записей.
+
+WorkManager запускает уникальную периодическую синхронизацию раз в два часа с
+constraint `NetworkType.CONNECTED`. Тот же coordinator вызывается после
+пользовательского refresh и при появлении сети. Параллельные запуски
+сериализуются mutex-ом; один outbox item не отправляется одновременно дважды.
+
+Backend не принимает idempotency key. Если соединение оборвалось после обработки
+`POST`, но до получения ответа, безопасно автоматически повторить запрос нельзя:
+возможен дубль. Такая операция остаётся в состоянии `UNKNOWN_RESULT`, после
+refresh repository пытается сопоставить серверные данные по полям и времени, а
+при неоднозначности запрашивает действие пользователя. Для обычной сетевой
+ошибки до отправки операция остаётся `PENDING`.
+
+HTTP 5xx повторяются не более трёх раз с интервалом две секунды. Ошибки
+400/401/404 не ретраятся автоматически и сохраняются как постоянная ошибка
+конкретной pending-операции.
+
+### Ограничения Swagger
+
+- `PUT /accounts/{id}` и `PUT /transactions/{id}` принимают полный payload,
+  поэтому outbox хранит полный снимок, а не patch.
+- Отдельной ручки корректировки баланса нет: используется полный
+  `AccountUpdateRequest`. Выбранное пользователем время корректировки хранится
+  локально; backend фиксирует собственный `changeTimestamp` и не принимает дату
+  корректировки в request.
+- Серверные ID — integer, но domain/client ID остаются строковыми стабильными
+  идентификаторами.
+- Backend не предоставляет tombstone или инкрементальный журнал. Отсутствие
+  сущности в ответе одного периода само по себе не является основанием удалить
+  её из Room.
+
+Финансовые значения не используют `Double`/`Float`: `Money` хранит
+`BigDecimal`, а денежные строки API преобразуются на границе impl/API. `emoji`
+остаётся `String`; серверный `isIncome` превращается в единый domain
+`TransactionType`.
 
 ## 6. Главный экран и навигация
 
 ```text
 RootComponent (ChildStack)
-|-- MainComponent (ChildStack)
+|-- MainComponent (ChildPages)
 |   |-- TransactionsComponent(EXPENSE)
 |   |-- TransactionsComponent(INCOME)
 |   `-- AccountsComponent
-`-- Analytics screen
+|-- AnalyticsComponent
+|-- TransactionEditorComponent(Create(type) | Edit(transactionId))
+|-- AccountEditorComponent(Create | Edit(accountId))
+`-- BalanceAdjustmentComponent(accountId)
 ```
 
 `RootComponent` — единственная точка навигации между основным разделом и
-аналитикой. Он создаёт `MainComponent` и `AnalyticsComponent`, а от
-`MainComponent` получает callback для перехода к аналитике. Пустой экран и его
-Component принадлежат `:feature:analytics`; пока feature не имеет состояния и
-не получает репозитории.
+аналитикой и редакторами. Он создаёт `MainComponent`, `AnalyticsComponent` и
+редакторы, а от дочерних компонентов получает типизированные output callbacks.
+После успешного сохранения editor вызывает callback возврата; списки не требуют
+ручного результата навигации, потому что наблюдают Room.
 
 `MainComponent` владеет выбранной вкладкой и единственной `MainNavigationBar`.
-Она не дублируется в feature-экранах. Аналитика запрашивается feature-экранами
-через callback, который `MainComponent` передаёт в `RootComponent`; feature не
-знают о корневой навигации. На первом этапе используется `ChildStack`: он
-достаточен для статического mock-состояния расходов, доходов и счетов. Когда
-вкладки начнут хранить независимые scroll position, дату или фильтры, navigation
-container заменяется на `ChildPages`, сохраняющий дочерние компоненты.
+Она не дублируется в feature-экранах. Аналитика и редакторы запрашиваются
+feature-компонентами через callbacks; feature не знают о корневом router.
+Основные вкладки используют контейнер, сохраняющий три дочерних компонента и их
+независимые состояния. Редакторы и аналитика находятся в корневом `ChildStack`.
 
 Общий визуальный каркас допускается как stateless `FinanceOverviewLayout` со
 слотами `header`, `summary`, `content`, `floatingActionButton`. Он не содержит
@@ -379,13 +467,17 @@ container заменяется на `ChildPages`, сохраняющий доч�
 
 Пока граф небольшой, используется ручное внедрение зависимостей:
 
-- `AppDependencies` в `:app` создаёт concrete-реализации;
+- `AppDependencies` в `:app` создаёт Room database, remote data sources,
+  offline-first repositories и `FinanceSyncCoordinator`;
 - `MainActivity` передаёт зависимости в `DefaultRootComponent` через конструктор;
 - `RootComponent` создаёт `MainComponent` и передаёт ему callback навигации;
-- `MainComponent` передаёт repository в `DefaultExpensesComponent` через
-  конструктор;
-- `RootComponent` передаёт `TransactionHistoryRepository`, `AccountsRepository`
-  и callback возврата в `AnalyticsComponent` через конструктор;
+- `MainComponent` передаёт repository в components списков через конструктор;
+- `RootComponent` передаёт `TransactionsRepository`, `AccountsRepository`
+  и callback возврата в `AnalyticsComponent`;
+- `RootComponent` создаёт transaction/account editor с repository, runtime ID и
+  callback возврата;
+- custom `WorkerFactory` передаёт `FinanceSyncCoordinator` в
+  `FinanceSyncWorker`;
 - MVI Component создаётся на экземпляр экрана, а не как singleton;
 - Compose и domain-код не получают `AppDependencies` и не используют service
   locator.
@@ -398,14 +490,19 @@ container заменяется на `ChildPages`, сохраняющий доч�
 для production этот источник заменяется безопасным механизмом получения и
 хранения токена.
 
-На этапе сетевой реализации граф для счетов выглядит так:
+Production graph выглядит так:
 
 ```text
-AccountsRepository -> RemoteAccountsRepository -> AccountsRemoteDataSource -> HttpClient
+AccountsRepository      -> OfflineFirstAccountsRepository
+TransactionsRepository  -> OfflineFirstTransactionsRepository
+CategoriesRepository    -> OfflineFirstCategoriesRepository
+                                     |-> Room DAOs
+                                     `-> RemoteDataSources -> FinanceHttpClient
+
+FinanceSyncWorker -> FinanceSyncCoordinator -> DAOs + RemoteDataSources
 ```
 
-Remote-реализации расходов, доходов и истории подключаются аналогично. Fake
-repositories остаются допустимы для preview и изолированных тестов, но не
+Fake repositories остаются допустимы для preview и изолированных тестов, но не
 используются в production graph. DI-фреймворк добавляется только если ручной
 composition root станет заметно сложнее.
 
@@ -516,16 +613,24 @@ Preview и UI-тесте без Decompose, ручного DI и MVI Component.
 
 ```text
 finance/api/
-  model/
-  repository/
-  usecase/
+  account/
+  category/
+  money/
+  transaction/
   error/
 
 finance/impl/
   repository/
   fake/
-  remote/        # появится с сетью
-  local/         # появится с Room
+  remote/
+    dto/
+    mapper/
+  local/
+    account/
+    transaction/
+    category/
+    sync/
+  sync/
   mapper/
   di/
 
@@ -542,14 +647,16 @@ core/ui/
 feature/transactions/
   presentation/
     list/
+    editor/
 
 feature/accounts/
   presentation/
     list/
+    editor/
+    balance/
 ```
 
-Пустые `remote`, `local`, `component` и будущие core-модули не создаются только
-ради структуры.
+Пустые component и будущие core-модули не создаются только ради структуры.
 
 ## 10. Инварианты
 
@@ -562,4 +669,9 @@ feature/accounts/
   счета всегда используют отдельный MVI Component.
 - Внешние data-модели не пересекают `:finance:impl`.
 - Domain contract не зависит от Android и деталей хранения.
+- Room является единственным source of truth для UI.
+- Локальная запись сущности и запись её outbox-операции атомарны.
+- Client ID не изменяется после получения remote ID.
+- WorkManager не содержит алгоритм синхронизации и не обращается к UI.
+- Повторный sync сериализован и не отправляет один outbox item параллельно.
 - Архитектура усложняется только вместе с конкретным требованием.
