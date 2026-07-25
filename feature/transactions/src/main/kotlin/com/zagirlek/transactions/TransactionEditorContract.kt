@@ -55,9 +55,12 @@ sealed interface TransactionEditorState : State {
         val saveError: String? = null,
     ) : TransactionEditorState {
         val isSaveEnabled: Boolean
-            get() = amountInput.isNotBlank() &&
-                selectedCategoryId != null &&
-                selectedAccountId != null &&
+            get() = amountInput
+                .replace(',', '.')
+                .toBigDecimalOrNull()
+                ?.signum() == 1 &&
+                categories.any { it.id == selectedCategoryId } &&
+                accounts.any { it.id == selectedAccountId } &&
                 !isSaving
     }
 }

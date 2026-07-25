@@ -40,6 +40,16 @@ class TransactionEditorReducerTest {
     }
 
     @Test
+    fun `save is disabled until amount is positive and selections exist`() {
+        listOf("", "0", "-10", "1.2.3").forEach { invalidAmount ->
+            assertFalse(content(amountInput = invalidAmount).isSaveEnabled)
+        }
+        assertFalse(content(selectedCategoryId = null).isSaveEnabled)
+        assertFalse(content(selectedAccountId = null).isSaveEnabled)
+        assertTrue(content(amountInput = "1250,50").isSaveEnabled)
+    }
+
+    @Test
     fun `save failure keeps input and exposes message`() {
         val result = TransactionEditorReducer.reduce(
             content(amountInput = "1250,50"),
@@ -55,13 +65,28 @@ class TransactionEditorReducerTest {
         amountInput: String = "100",
         activeSelector: TransactionEditorSelector? = null,
         saveError: String? = null,
+        selectedCategoryId: CategoryId? = CategoryId(1),
+        selectedAccountId: AccountId? = AccountId("account"),
     ) = TransactionEditorState.Content(
         type = TransactionType.Expense,
         amountInput = amountInput,
-        categories = emptyList(),
-        selectedCategoryId = CategoryId(1),
-        accounts = emptyList(),
-        selectedAccountId = AccountId("account"),
+        categories = listOf(
+            TransactionEditorCategoryUi(
+                id = CategoryId(1),
+                name = "Продукты",
+                emoji = "🛒",
+            ),
+        ),
+        selectedCategoryId = selectedCategoryId,
+        accounts = listOf(
+            TransactionEditorAccountUi(
+                id = AccountId("account"),
+                name = "Основной счёт",
+                emoji = "💳",
+                currency = "RUB",
+            ),
+        ),
+        selectedAccountId = selectedAccountId,
         date = LocalDate.of(2026, 7, 25),
         time = LocalTime.of(12, 30),
         activeSelector = activeSelector,

@@ -13,12 +13,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.CalendarMonth
@@ -29,10 +33,10 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -46,7 +50,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -108,101 +114,98 @@ private fun TransactionEditorContent(
     val selectedCategory = state.categories.firstOrNull { it.id == state.selectedCategoryId }
     val selectedAccount = state.accounts.firstOrNull { it.id == state.selectedAccountId }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .fillMaxHeight(0.8f),
+            .fillMaxHeight(0.8f)
+            .navigationBarsPadding()
+            .imePadding(),
     ) {
-        AmountInput(
-            value = state.amountInput,
-            currency = selectedAccount?.currency,
-            onValueChange = { onIntent(TransactionEditorIntent.AmountChanged(it)) },
-        )
-
-        Spacer(modifier = Modifier.height(dimensions.space16))
-
-        EditorRow(
-            icon = Icons.Outlined.Sell,
-            title = stringResource(R.string.transaction_editor_category),
-            value = selectedCategory?.name ?: stringResource(R.string.transaction_editor_not_selected),
-            onClick = {
-                onIntent(
-                    TransactionEditorIntent.SelectorOpened(
-                        TransactionEditorSelector.Category,
-                    ),
-                )
-            },
-        )
-        EditorRow(
-            icon = Icons.Outlined.CalendarMonth,
-            title = stringResource(R.string.transaction_editor_date),
-            value = state.date.format(EditorDateFormatter),
-            onClick = {
-                onIntent(
-                    TransactionEditorIntent.SelectorOpened(TransactionEditorSelector.Date),
-                )
-            },
-        )
-        EditorRow(
-            icon = Icons.Outlined.CalendarMonth,
-            title = stringResource(R.string.transaction_editor_time),
-            value = state.time.format(EditorTimeFormatter),
-            onClick = {
-                onIntent(
-                    TransactionEditorIntent.SelectorOpened(TransactionEditorSelector.Time),
-                )
-            },
-        )
-        EditorRow(
-            icon = Icons.Outlined.CreditCard,
-            title = stringResource(R.string.transaction_editor_account),
-            value = selectedAccount?.name ?: stringResource(R.string.transaction_editor_not_selected),
-            onClick = {
-                onIntent(
-                    TransactionEditorIntent.SelectorOpened(
-                        TransactionEditorSelector.Account,
-                    ),
-                )
-            },
-        )
-
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(dimensions.fabSize)
-                .offset(y = -(dimensions.fabSize / 2))
-                .padding(end = dimensions.space16),
-            contentAlignment = Alignment.CenterEnd,
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = dimensions.fabSize + dimensions.space32),
         ) {
-            FloatingActionButton(
-                onClick = { onIntent(TransactionEditorIntent.SaveClicked) },
-                modifier = Modifier.size(dimensions.fabSize),
-                containerColor = MaterialTheme.colorScheme.onSurface,
-                contentColor = MaterialTheme.colorScheme.surface,
-            ) {
-                if (state.isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(dimensions.iconSize),
-                        color = MaterialTheme.colorScheme.surface,
-                        strokeWidth = dimensions.space2,
+            AmountInput(
+                value = state.amountInput,
+                currency = selectedAccount?.currency,
+                onValueChange = { onIntent(TransactionEditorIntent.AmountChanged(it)) },
+            )
+
+            Spacer(modifier = Modifier.height(dimensions.space16))
+
+            EditorRow(
+                icon = Icons.Outlined.Sell,
+                title = stringResource(R.string.transaction_editor_category),
+                value = selectedCategory?.name
+                    ?: stringResource(R.string.transaction_editor_not_selected),
+                onClick = {
+                    onIntent(
+                        TransactionEditorIntent.SelectorOpened(
+                            TransactionEditorSelector.Category,
+                        ),
                     )
-                } else {
-                    Icon(
-                        imageVector = Icons.Filled.Check,
-                        contentDescription = stringResource(R.string.transaction_editor_save),
+                },
+            )
+            EditorRow(
+                icon = Icons.Outlined.CalendarMonth,
+                title = stringResource(R.string.transaction_editor_date),
+                value = state.date.format(EditorDateFormatter),
+                onClick = {
+                    onIntent(
+                        TransactionEditorIntent.SelectorOpened(TransactionEditorSelector.Date),
                     )
-                }
+                },
+            )
+            EditorRow(
+                icon = Icons.Outlined.CalendarMonth,
+                title = stringResource(R.string.transaction_editor_time),
+                value = state.time.format(EditorTimeFormatter),
+                onClick = {
+                    onIntent(
+                        TransactionEditorIntent.SelectorOpened(TransactionEditorSelector.Time),
+                    )
+                },
+            )
+            EditorRow(
+                icon = Icons.Outlined.CreditCard,
+                title = stringResource(R.string.transaction_editor_account),
+                value = selectedAccount?.name
+                    ?: stringResource(R.string.transaction_editor_not_selected),
+                onClick = {
+                    onIntent(
+                        TransactionEditorIntent.SelectorOpened(
+                            TransactionEditorSelector.Account,
+                        ),
+                    )
+                },
+            )
+
+            state.saveError?.let { message ->
+                Text(
+                    text = message,
+                    modifier = Modifier.padding(
+                        horizontal = dimensions.space16,
+                        vertical = dimensions.space8,
+                    ),
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
             }
         }
 
-        state.saveError?.let { message ->
-            Text(
-                text = message,
-                modifier = Modifier.padding(horizontal = dimensions.space16),
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodyMedium,
-            )
-        }
+        SaveButton(
+            enabled = state.isSaveEnabled,
+            isSaving = state.isSaving,
+            onClick = { onIntent(TransactionEditorIntent.SaveClicked) },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(
+                    end = dimensions.space16,
+                    bottom = dimensions.space16,
+                ),
+        )
     }
 
     when (state.activeSelector) {
@@ -215,12 +218,58 @@ private fun TransactionEditorContent(
 }
 
 @Composable
+private fun SaveButton(
+    enabled: Boolean,
+    isSaving: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val dimensions = YaMoneyDesign.dimensions
+    val containerColor = if (enabled) {
+        MaterialTheme.colorScheme.onSurface
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant
+    }
+    val contentColor = if (enabled) {
+        MaterialTheme.colorScheme.surface
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    Surface(
+        onClick = onClick,
+        modifier = modifier.size(dimensions.fabSize),
+        enabled = enabled,
+        shape = MaterialTheme.shapes.large,
+        color = containerColor,
+        contentColor = contentColor,
+        shadowElevation = if (enabled) dimensions.space4 else dimensions.space2,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            if (isSaving) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(dimensions.iconSize),
+                    color = contentColor,
+                    strokeWidth = dimensions.space2,
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Filled.Check,
+                    contentDescription = stringResource(R.string.transaction_editor_save),
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun AmountInput(
     value: String,
     currency: String?,
     onValueChange: (String) -> Unit,
 ) {
     val dimensions = YaMoneyDesign.dimensions
+    val focusManager = LocalFocusManager.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -244,7 +293,13 @@ private fun AmountInput(
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.End,
                 ),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Decimal,
+                    imeAction = ImeAction.Done,
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = { focusManager.clearFocus() },
+                ),
                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                 singleLine = true,
             )
@@ -270,6 +325,7 @@ private fun EditorRow(
 ) {
     val dimensions = YaMoneyDesign.dimensions
     val interactionSource = remember { MutableInteractionSource() }
+    val focusManager = LocalFocusManager.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -277,7 +333,10 @@ private fun EditorRow(
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
-                onClick = onClick,
+                onClick = {
+                    focusManager.clearFocus()
+                    onClick()
+                },
             )
             .padding(
                 horizontal = dimensions.space16,

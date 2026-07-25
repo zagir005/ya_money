@@ -128,8 +128,6 @@ class DefaultTransactionEditorComponent(
         val account = state.accounts.firstOrNull { it.id == state.selectedAccountId }
         val categoryId = state.selectedCategoryId
         if (amount == null || account == null || categoryId == null) {
-            TransactionEditorMutation.SaveFailed("Заполните сумму, статью и счёт.")
-                .reduce(mutableState)
             return
         }
 
