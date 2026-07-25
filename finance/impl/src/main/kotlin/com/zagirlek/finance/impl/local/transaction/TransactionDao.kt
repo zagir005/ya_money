@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Upsert
+import com.zagirlek.finance.impl.local.SyncStatus
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -31,6 +32,18 @@ internal interface TransactionDao {
 
     @Query("SELECT * FROM transactions WHERE remote_id = :remoteId")
     suspend fun getByRemoteId(remoteId: Long): TransactionEntity?
+
+    @Query(
+        """
+        SELECT COUNT(*) FROM transactions
+        WHERE account_client_id = :accountClientId
+          AND sync_status != :syncedStatus
+        """,
+    )
+    suspend fun countPendingForAccount(
+        accountClientId: String,
+        syncedStatus: SyncStatus = SyncStatus.Synced,
+    ): Int
 
     @Upsert
     suspend fun upsert(transaction: TransactionEntity)

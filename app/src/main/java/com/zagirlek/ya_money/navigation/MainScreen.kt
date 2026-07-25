@@ -23,7 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
-import com.arkivanov.decompose.extensions.compose.stack.Children
+import com.arkivanov.decompose.extensions.compose.pages.ChildPages
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.zagirlek.systemdesign.theme.YaMoneyDesign
 import com.zagirlek.ya_money.R
@@ -33,8 +33,8 @@ import com.zagirlek.transactions.TransactionsScreen
 
 @Composable
 fun MainScreen(component: MainComponent) {
-    val stack by component.childStack.subscribeAsState()
-    val selectedTab = stack.active.configuration
+    val pages by component.childPages.subscribeAsState()
+    val selectedTab = pages.items[pages.selectedIndex].configuration
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -45,20 +45,21 @@ fun MainScreen(component: MainComponent) {
             )
         },
     ) { contentPadding ->
-        Children(
-            stack = component.childStack,
+        ChildPages(
+            pages = component.childPages,
+            onPageSelected = { index -> component.select(MainTab.entries[index]) },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(contentPadding),
-        ) { child ->
-            when (val instance = child.instance) {
+        ) { _, child ->
+            when (child) {
                 is MainComponent.Child.Transactions -> TransactionsScreen(
-                    type = instance.type,
-                    component = instance.component,
+                    type = child.type,
+                    component = child.component,
                     onAnalyticsClick = component::openAnalytics,
                 )
                 is MainComponent.Child.Accounts -> AccountsScreen(
-                    component = instance.component,
+                    component = child.component,
                     onAnalyticsClick = component::openAnalytics,
                 )
             }

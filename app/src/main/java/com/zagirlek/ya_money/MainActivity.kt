@@ -13,13 +13,13 @@ import com.zagirlek.ya_money.navigation.RootScreen
 import com.zagirlek.systemdesign.theme.YaMoneyTheme
 
 class MainActivity : ComponentActivity() {
-    private val dependencies = AppDependencies()
+    private val dependencies by lazy { AppDependencies(applicationContext) }
     private val rootComponent by lazy {
         DefaultRootComponent(
             componentContext = DefaultComponentContext(LifecycleRegistry()),
             accountsRepository = dependencies.accountsRepository,
-            expensesRepository = dependencies.expensesRepository,
-            incomesRepository = dependencies.incomesRepository,
+            categoriesRepository = dependencies.categoriesRepository,
+            transactionsRepository = dependencies.transactionsRepository,
             transactionHistoryRepository = dependencies.transactionHistoryRepository,
         )
     }
@@ -33,5 +33,10 @@ class MainActivity : ComponentActivity() {
                 RootScreen(component = rootComponent)
             }
         }
+    }
+
+    override fun onDestroy() {
+        dependencies.close()
+        super.onDestroy()
     }
 }

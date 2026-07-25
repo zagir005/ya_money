@@ -124,12 +124,12 @@ private fun TransactionsList(
                 }
             } else {
                 items(items = state.items, key = TransactionItemUi::id) { item ->
-                FinanceListItem(
-                    lead = item.lead,
-                    content = item.content,
-                    trail = item.trail,
-                    onClick = { onTransactionClicked(item.id) },
-                )
+                    FinanceListItem(
+                        lead = item.lead,
+                        content = item.content,
+                        trail = item.trail,
+                        onClick = { onTransactionClicked(item.id) },
+                    )
                 }
             }
         }

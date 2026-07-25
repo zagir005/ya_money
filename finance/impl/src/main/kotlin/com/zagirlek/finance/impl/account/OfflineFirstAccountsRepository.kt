@@ -23,6 +23,13 @@ internal class OfflineFirstAccountsRepository(
     @Deprecated(
         message = "Screen components must observe Room-backed data through observeAccounts().",
     )
-    override suspend fun getAccounts(): List<Account> =
-        observeAccounts().first()
+    override suspend fun getAccounts(): List<Account> {
+        val cached = observeAccounts().first()
+        return try {
+            refreshAccounts()
+            observeAccounts().first()
+        } catch (error: Exception) {
+            if (cached.isNotEmpty()) cached else throw error
+        }
+    }
 }

@@ -1,5 +1,6 @@
 package com.zagirlek.finance.impl.local.transaction
 
+import com.zagirlek.finance.api.account.AccountId
 import com.zagirlek.finance.api.transaction.Transaction
 import com.zagirlek.finance.api.transaction.TransactionId
 import com.zagirlek.finance.api.transaction.TransactionPeriod
@@ -28,6 +29,9 @@ internal class TransactionsLocalDataSource(
 
     suspend fun getEntity(remoteId: Long): TransactionEntity? =
         transactionDao.getByRemoteId(remoteId)
+
+    suspend fun hasPendingForAccount(accountId: AccountId): Boolean =
+        transactionDao.countPendingForAccount(accountId.value) > 0
 
     suspend fun upsert(transaction: TransactionEntity) = transactionDao.upsert(transaction)
 

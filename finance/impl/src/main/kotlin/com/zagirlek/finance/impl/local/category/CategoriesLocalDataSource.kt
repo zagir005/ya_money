@@ -14,6 +14,9 @@ internal class CategoriesLocalDataSource(
     suspend fun getCategory(categoryId: CategoryId): Category? =
         categoryDao.getById(categoryId.value)?.toDomain()
 
+    suspend fun getEntity(categoryId: CategoryId): CategoryEntity? =
+        categoryDao.getById(categoryId.value)
+
     suspend fun upsertAll(categories: List<Category>) =
         categoryDao.upsertAll(categories.map(Category::toEntity))
 

@@ -3,6 +3,7 @@ package com.zagirlek.finance.impl.local.sync
 import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Upsert
+import com.zagirlek.finance.impl.local.PendingEntityType
 import com.zagirlek.finance.impl.local.PendingOperationStatus
 import kotlinx.coroutines.flow.Flow
 
@@ -32,6 +33,20 @@ internal interface PendingOperationDao {
 
     @Query("SELECT * FROM pending_operations WHERE id = :operationId")
     suspend fun getById(operationId: String): PendingOperationEntity?
+
+    @Query(
+        """
+        SELECT * FROM pending_operations
+        WHERE entity_type = :entityType
+          AND entity_client_id = :entityClientId
+        ORDER BY created_at_millis DESC
+        LIMIT 1
+        """,
+    )
+    suspend fun getLatestForEntity(
+        entityType: PendingEntityType,
+        entityClientId: String,
+    ): PendingOperationEntity?
 
     @Upsert
     suspend fun upsert(operation: PendingOperationEntity)

@@ -1,30 +1,33 @@
 package com.zagirlek.ya_money.di
 
-import com.zagirlek.finance.impl.account.remote.RemoteAccountsRepository
+import android.content.Context
 import com.zagirlek.finance.api.account.AccountsRepository
-import com.zagirlek.finance.api.expense.ExpensesRepository
-import com.zagirlek.finance.api.income.IncomesRepository
+import com.zagirlek.finance.api.category.CategoriesRepository
 import com.zagirlek.finance.api.transaction.TransactionHistoryRepository
-import com.zagirlek.finance.impl.expense.remote.RemoteExpensesRepository
-import com.zagirlek.finance.impl.income.remote.RemoteIncomesRepository
+import com.zagirlek.finance.api.transaction.TransactionsRepository
+import com.zagirlek.finance.impl.FinanceDataGraph
 import com.zagirlek.finance.impl.network.FinanceHttpClient
 import com.zagirlek.finance.impl.transaction.remote.RemoteTransactionHistoryRepository
 import com.zagirlek.ya_money.BuildConfig
+import java.io.Closeable
 
-class AppDependencies {
+class AppDependencies(context: Context) : Closeable {
     private val financeHttpClient = FinanceHttpClient(BuildConfig.FINANCE_API_TOKEN)
+    private val financeDataGraph = FinanceDataGraph(
+        context = context,
+        httpClient = financeHttpClient,
+    )
 
-    val accountsRepository: AccountsRepository = RemoteAccountsRepository(financeHttpClient)
-    val expensesRepository: ExpensesRepository = RemoteExpensesRepository(
-        accountsRepository = accountsRepository,
-        httpClient = financeHttpClient,
-    )
-    val incomesRepository: IncomesRepository = RemoteIncomesRepository(
-        accountsRepository = accountsRepository,
-        httpClient = financeHttpClient,
-    )
+    val accountsRepository: AccountsRepository = financeDataGraph.accountsRepository
+    val categoriesRepository: CategoriesRepository = financeDataGraph.categoriesRepository
+    val transactionsRepository: TransactionsRepository = financeDataGraph.transactionsRepository
     val transactionHistoryRepository: TransactionHistoryRepository = RemoteTransactionHistoryRepository(
         accountsRepository = accountsRepository,
         httpClient = financeHttpClient,
     )
+
+    override fun close() {
+        financeDataGraph.close()
+        financeHttpClient.close()
+    }
 }

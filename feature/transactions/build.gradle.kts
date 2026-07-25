@@ -34,4 +34,6 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.decompose)
+
+    testImplementation(libs.junit)
 }

@@ -5,14 +5,19 @@ import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.router.stack.pop
-import com.arkivanov.decompose.router.stack.push
+import com.arkivanov.decompose.router.stack.pushNew
 import com.arkivanov.decompose.value.Value
 import com.zagirlek.analytics.AnalyticsComponent
 import com.zagirlek.analytics.DefaultAnalyticsComponent
 import com.zagirlek.finance.api.account.AccountsRepository
-import com.zagirlek.finance.api.expense.ExpensesRepository
-import com.zagirlek.finance.api.income.IncomesRepository
+import com.zagirlek.finance.api.category.CategoriesRepository
 import com.zagirlek.finance.api.transaction.TransactionHistoryRepository
+import com.zagirlek.finance.api.transaction.TransactionId
+import com.zagirlek.finance.api.transaction.TransactionsRepository
+import com.zagirlek.transactions.DefaultTransactionEditorComponent
+import com.zagirlek.transactions.TransactionEditorComponent
+import com.zagirlek.transactions.TransactionEditorMode
+import com.zagirlek.transactions.TransactionType
 
 interface RootComponent {
     val childStack: Value<ChildStack<Configuration, Child>>
@@ -20,19 +25,22 @@ interface RootComponent {
     sealed interface Configuration {
         data object Main : Configuration
         data object Analytics : Configuration
+        data class CreateTransaction(val type: TransactionType) : Configuration
+        data class EditTransaction(val transactionId: TransactionId) : Configuration
     }
 
     sealed interface Child {
         data class Main(val component: MainComponent) : Child
         data class Analytics(val component: AnalyticsComponent) : Child
+        data class TransactionEditor(val component: TransactionEditorComponent) : Child
     }
 }
 
 class DefaultRootComponent(
     componentContext: ComponentContext,
     private val accountsRepository: AccountsRepository,
-    private val expensesRepository: ExpensesRepository,
-    private val incomesRepository: IncomesRepository,
+    private val categoriesRepository: CategoriesRepository,
+    private val transactionsRepository: TransactionsRepository,
     private val transactionHistoryRepository: TransactionHistoryRepository,
 ) : RootComponent, ComponentContext by componentContext {
     private val navigation = StackNavigation<RootComponent.Configuration>()
@@ -53,9 +61,16 @@ class DefaultRootComponent(
             component = DefaultMainComponent(
                 componentContext = componentContext,
                 accountsRepository = accountsRepository,
-                expensesRepository = expensesRepository,
-                incomesRepository = incomesRepository,
-                onAnalyticsRequested = { navigation.push(RootComponent.Configuration.Analytics) },
+                transactionsRepository = transactionsRepository,
+                onAnalyticsRequested = {
+                    navigation.pushNew(RootComponent.Configuration.Analytics)
+                },
+                onCreateTransactionRequested = { type ->
+                    navigation.pushNew(RootComponent.Configuration.CreateTransaction(type))
+                },
+                onEditTransactionRequested = { transactionId ->
+                    navigation.pushNew(RootComponent.Configuration.EditTransaction(transactionId))
+                },
             ),
         )
         RootComponent.Configuration.Analytics -> RootComponent.Child.Analytics(
@@ -66,5 +81,31 @@ class DefaultRootComponent(
                 onBackRequested = { navigation.pop() },
             ),
         )
+        is RootComponent.Configuration.CreateTransaction ->
+            RootComponent.Child.TransactionEditor(
+                component = createTransactionEditor(
+                    componentContext = componentContext,
+                    mode = TransactionEditorMode.Create(configuration.type),
+                ),
+            )
+        is RootComponent.Configuration.EditTransaction ->
+            RootComponent.Child.TransactionEditor(
+                component = createTransactionEditor(
+                    componentContext = componentContext,
+                    mode = TransactionEditorMode.Edit(configuration.transactionId),
+                ),
+            )
     }
+
+    private fun createTransactionEditor(
+        componentContext: ComponentContext,
+        mode: TransactionEditorMode,
+    ): TransactionEditorComponent = DefaultTransactionEditorComponent(
+        componentContext = componentContext,
+        mode = mode,
+        transactionsRepository = transactionsRepository,
+        categoriesRepository = categoriesRepository,
+        accountsRepository = accountsRepository,
+        onDismissRequested = { navigation.pop() },
+    )
 }

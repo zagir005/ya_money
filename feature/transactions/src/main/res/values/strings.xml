@@ -13,4 +13,12 @@
     <string name="expenses_add_content_description">Добавить расход</string>
     <string name="expenses_preview_item_title">Продукты</string>
     <string name="expenses_preview_item_subtitle">Перекрёсток</string>
+    <string name="transaction_editor_category">Статья</string>
+    <string name="transaction_editor_date">Дата</string>
+    <string name="transaction_editor_time">Время</string>
+    <string name="transaction_editor_account">Счёт</string>
+    <string name="transaction_editor_not_selected">Не выбрано</string>
+    <string name="transaction_editor_save">Сохранить операцию</string>
+    <string name="transaction_editor_done">Готово</string>
+    <string name="transaction_editor_cancel">Отмена</string>
 </resources>

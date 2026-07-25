@@ -1,16 +1,18 @@
 package com.zagirlek.ya_money.navigation
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.router.stack.ChildStack
-import com.arkivanov.decompose.router.stack.StackNavigation
-import com.arkivanov.decompose.router.stack.childStack
-import com.arkivanov.decompose.router.stack.replaceAll
+import com.arkivanov.decompose.router.children.ChildNavState
+import com.arkivanov.decompose.router.pages.ChildPages
+import com.arkivanov.decompose.router.pages.Pages
+import com.arkivanov.decompose.router.pages.PagesNavigation
+import com.arkivanov.decompose.router.pages.childPages
+import com.arkivanov.decompose.router.pages.select
 import com.arkivanov.decompose.value.Value
 import com.zagirlek.accounts.AccountsComponent
 import com.zagirlek.accounts.DefaultAccountsComponent
 import com.zagirlek.finance.api.account.AccountsRepository
-import com.zagirlek.finance.api.expense.ExpensesRepository
-import com.zagirlek.finance.api.income.IncomesRepository
+import com.zagirlek.finance.api.transaction.TransactionId
+import com.zagirlek.finance.api.transaction.TransactionsRepository
 import com.zagirlek.transactions.DefaultTransactionsComponent
 import com.zagirlek.transactions.TransactionType
 import com.zagirlek.transactions.TransactionsComponent
@@ -22,7 +24,7 @@ enum class MainTab {
 }
 
 interface MainComponent {
-    val childStack: Value<ChildStack<MainTab, Child>>
+    val childPages: Value<ChildPages<MainTab, Child>>
 
     fun select(tab: MainTab)
 
@@ -40,22 +42,35 @@ interface MainComponent {
 class DefaultMainComponent(
     componentContext: ComponentContext,
     private val accountsRepository: AccountsRepository,
-    private val expensesRepository: ExpensesRepository,
-    private val incomesRepository: IncomesRepository,
+    private val transactionsRepository: TransactionsRepository,
     private val onAnalyticsRequested: () -> Unit,
+    private val onCreateTransactionRequested: (TransactionType) -> Unit,
+    private val onEditTransactionRequested: (TransactionId) -> Unit,
 ) : MainComponent, ComponentContext by componentContext {
-    private val navigation = StackNavigation<MainTab>()
+    private val navigation = PagesNavigation<MainTab>()
 
-    override val childStack: Value<ChildStack<MainTab, MainComponent.Child>> = childStack(
+    override val childPages: Value<ChildPages<MainTab, MainComponent.Child>> = childPages(
         source = navigation,
         serializer = null,
-        initialConfiguration = MainTab.Expenses,
+        initialPages = {
+            Pages(
+                items = MainTab.entries,
+                selectedIndex = MainTab.Expenses.ordinal,
+            )
+        },
+        pageStatus = { index, pages ->
+            if (index == pages.selectedIndex) {
+                ChildNavState.Status.RESUMED
+            } else {
+                ChildNavState.Status.CREATED
+            }
+        },
         handleBackButton = false,
         childFactory = ::createChild,
     )
 
     override fun select(tab: MainTab) {
-        navigation.replaceAll(tab)
+        navigation.select(tab.ordinal)
     }
 
     override fun openAnalytics() {
@@ -71,8 +86,9 @@ class DefaultMainComponent(
             component = DefaultTransactionsComponent(
                 componentContext = componentContext,
                 type = TransactionType.Expense,
-                expensesRepository = expensesRepository,
-                incomesRepository = incomesRepository,
+                transactionsRepository = transactionsRepository,
+                onAddRequested = onCreateTransactionRequested,
+                onEditRequested = onEditTransactionRequested,
             ),
         )
         MainTab.Income -> MainComponent.Child.Transactions(
@@ -80,8 +96,9 @@ class DefaultMainComponent(
             component = DefaultTransactionsComponent(
                 componentContext = componentContext,
                 type = TransactionType.Income,
-                expensesRepository = expensesRepository,
-                incomesRepository = incomesRepository,
+                transactionsRepository = transactionsRepository,
+                onAddRequested = onCreateTransactionRequested,
+                onEditRequested = onEditTransactionRequested,
             ),
         )
         MainTab.Accounts -> MainComponent.Child.Accounts(
