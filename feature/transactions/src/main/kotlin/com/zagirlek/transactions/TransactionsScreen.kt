@@ -126,7 +126,7 @@ private fun TransactionsList(
                 items(items = state.items, key = TransactionItemUi::id) { item ->
                     FinanceListItem(
                         lead = item.lead,
-                        content = item.content,
+                        content = item.title,
                         trail = item.trail,
                         onClick = { onTransactionClicked(item.id) },
                     )
@@ -175,7 +175,7 @@ private fun ExpenseTransactionsPreview() {
                     TransactionItemUi(
                         id = "expense-preview",
                         lead = "🛒",
-                        content = "Перекрёсток",
+                        title = "Продукты",
                         trail = "1 280,50 ₽",
                     ),
                 ),
@@ -197,7 +197,7 @@ private fun IncomeTransactionsPreview() {
                     TransactionItemUi(
                         id = "income-preview",
                         lead = "💼",
-                        content = "Зарплата за июль",
+                        title = "Зарплата",
                         trail = "120 000 ₽",
                     ),
                 ),

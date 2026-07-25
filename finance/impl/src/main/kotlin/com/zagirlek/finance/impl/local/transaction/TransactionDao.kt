@@ -15,7 +15,7 @@ internal interface TransactionDao {
         SELECT * FROM transactions
         WHERE transaction_date_millis >= :startInclusiveMillis
           AND transaction_date_millis < :endExclusiveMillis
-        ORDER BY transaction_date_millis DESC, client_id
+        ORDER BY transaction_date_millis DESC, created_at_millis DESC, client_id DESC
         """,
     )
     fun observeByPeriod(

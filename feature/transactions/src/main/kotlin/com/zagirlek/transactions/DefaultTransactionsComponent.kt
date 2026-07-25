@@ -65,6 +65,7 @@ class DefaultTransactionsComponent(
             transactionsRepository.observeTransactions(period).collect { transactions ->
                 transactions
                     .filter { transaction -> transaction.category.type == type }
+                    .sortedNewestFirst()
                     .toMutation()
                     .reduce(mutableState)
             }
@@ -109,13 +110,23 @@ class DefaultTransactionsComponent(
                 }
                 .joinToString(separator = " · "),
             items = map { transaction ->
-                TransactionItemUi(
-                    id = transaction.id.value,
-                    lead = transaction.category.emoji,
-                    content = transaction.comment ?: transaction.category.name,
-                    trail = transaction.money.format(moneyFormatter),
-                )
+                transaction.toItemUi(moneyFormatter)
             },
         )
     }
 }
+
+internal fun Transaction.toItemUi(moneyFormatter: MoneyFormatter): TransactionItemUi =
+    TransactionItemUi(
+        id = id.value,
+        lead = category.emoji,
+        title = category.name,
+        trail = money.format(moneyFormatter),
+    )
+
+internal fun List<Transaction>.sortedNewestFirst(): List<Transaction> =
+    sortedWith(
+        compareByDescending<Transaction>(Transaction::occurredAt)
+            .thenByDescending(Transaction::createdAt)
+            .thenByDescending { transaction -> transaction.id.value },
+    )

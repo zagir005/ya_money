@@ -10,7 +10,7 @@ import com.zagirlek.ui.mvi.State
 data class TransactionItemUi(
     val id: String,
     val lead: String,
-    val content: String,
+    val title: String,
     val trail: String,
 )
 
