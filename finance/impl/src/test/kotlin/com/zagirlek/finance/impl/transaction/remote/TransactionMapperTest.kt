@@ -1,5 +1,6 @@
 package com.zagirlek.finance.impl.transaction.remote
 
+import com.zagirlek.finance.impl.category.remote.CategoryDto
 import com.zagirlek.finance.api.money.CurrencyCode
 import com.zagirlek.finance.api.transaction.TransactionType
 import java.math.BigDecimal

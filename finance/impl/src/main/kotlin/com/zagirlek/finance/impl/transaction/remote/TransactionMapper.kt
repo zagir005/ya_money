@@ -17,6 +17,7 @@ import com.zagirlek.finance.api.money.Money
 import com.zagirlek.finance.api.transaction.Transaction
 import com.zagirlek.finance.api.transaction.TransactionId
 import com.zagirlek.finance.api.transaction.TransactionType
+import com.zagirlek.finance.impl.category.remote.CategoryDto
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.ZoneOffset

@@ -16,4 +16,7 @@ internal class CategoriesLocalDataSource(
 
     suspend fun upsertAll(categories: List<Category>) =
         categoryDao.upsertAll(categories.map(Category::toEntity))
+
+    suspend fun upsertEntities(categories: List<CategoryEntity>) =
+        categoryDao.upsertAll(categories)
 }

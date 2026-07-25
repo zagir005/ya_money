@@ -20,6 +20,9 @@ internal interface AccountDao {
     @Query("SELECT * FROM accounts WHERE remote_id = :remoteId")
     suspend fun getByRemoteId(remoteId: Long): AccountEntity?
 
+    @Query("SELECT * FROM accounts WHERE remote_id IS NOT NULL ORDER BY remote_id")
+    suspend fun getAllWithRemoteId(): List<AccountEntity>
+
     @Upsert
     suspend fun upsert(account: AccountEntity)
 

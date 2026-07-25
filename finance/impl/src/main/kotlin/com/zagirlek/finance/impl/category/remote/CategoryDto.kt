@@ -1,4 +1,4 @@
-package com.zagirlek.finance.impl.transaction.remote
+package com.zagirlek.finance.impl.category.remote
 
 import kotlinx.serialization.Serializable
 

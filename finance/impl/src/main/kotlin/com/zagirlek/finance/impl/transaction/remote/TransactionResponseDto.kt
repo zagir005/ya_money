@@ -1,5 +1,6 @@
 package com.zagirlek.finance.impl.transaction.remote
 
+import com.zagirlek.finance.impl.category.remote.CategoryDto
 import kotlinx.serialization.Serializable
 
 /** Точная transport-модель элемента ответа `GET /transactions/account/{id}/period`. */

@@ -20,6 +20,9 @@ internal class AccountsLocalDataSource(
     suspend fun getEntity(remoteId: Long): AccountEntity? =
         accountDao.getByRemoteId(remoteId)
 
+    suspend fun getRemoteBackedEntities(): List<AccountEntity> =
+        accountDao.getAllWithRemoteId()
+
     suspend fun upsert(account: AccountEntity) = accountDao.upsert(account)
 
     suspend fun upsertAll(accounts: List<AccountEntity>) = accountDao.upsertAll(accounts)
