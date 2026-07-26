@@ -1,6 +1,5 @@
 package com.zagirlek.finance.api.account
 
-import com.zagirlek.finance.api.money.CurrencyCode
 import com.zagirlek.finance.api.money.Money
 import java.math.BigDecimal
 import java.time.Instant
@@ -50,16 +49,10 @@ data class UpdateAccount(
     val accountId: AccountId,
     val name: String,
     val emoji: String,
-    val currency: CurrencyCode,
+    val balance: Money,
 ) {
     init {
         require(name.isNotBlank()) { "Account name must not be blank." }
         require(emoji.isNotBlank()) { "Account emoji must not be blank." }
     }
 }
-
-data class AdjustAccountBalance(
-    val accountId: AccountId,
-    val newBalance: Money,
-    val occurredAt: Instant,
-)

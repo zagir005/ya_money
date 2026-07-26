@@ -7,13 +7,13 @@ import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
-import com.zagirlek.ya_money.di.AppDependencies
 import com.zagirlek.ya_money.navigation.DefaultRootComponent
 import com.zagirlek.ya_money.navigation.RootScreen
 import com.zagirlek.systemdesign.theme.YaMoneyTheme
 
 class MainActivity : ComponentActivity() {
-    private val dependencies by lazy { AppDependencies(applicationContext) }
+    private val dependencies
+        get() = (application as YaMoneyApplication).dependencies
     private val rootComponent by lazy {
         DefaultRootComponent(
             componentContext = DefaultComponentContext(LifecycleRegistry()),
@@ -33,10 +33,5 @@ class MainActivity : ComponentActivity() {
                 RootScreen(component = rootComponent)
             }
         }
-    }
-
-    override fun onDestroy() {
-        dependencies.close()
-        super.onDestroy()
     }
 }

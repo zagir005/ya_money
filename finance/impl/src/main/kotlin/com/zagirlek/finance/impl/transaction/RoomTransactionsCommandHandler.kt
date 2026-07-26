@@ -5,6 +5,7 @@ import com.zagirlek.finance.api.category.CategoryId
 import com.zagirlek.finance.api.transaction.CreateTransaction
 import com.zagirlek.finance.api.transaction.TransactionId
 import com.zagirlek.finance.api.transaction.UpdateTransaction
+import com.zagirlek.finance.impl.account.toPendingPayload
 import com.zagirlek.finance.impl.local.FinanceLocalTransactionRunner
 import com.zagirlek.finance.impl.local.PendingEntityType
 import com.zagirlek.finance.impl.local.PendingOperationStatus
@@ -60,16 +61,16 @@ internal class RoomTransactionsCommandHandler(
                 syncStatus = SyncStatus.PendingCreate,
             )
 
-            accountsLocalDataSource.upsert(
-                account.withBalance(
-                    applyTransactionImpact(
-                        balance = BigDecimal(account.balance),
-                        amount = command.money.amount,
-                        isIncome = category.isIncome,
-                    ),
-                    nowMillis = nowMillis,
+            val updatedAccount = account.withBalance(
+                applyTransactionImpact(
+                    balance = BigDecimal(account.balance),
+                    amount = command.money.amount,
+                    isIncome = category.isIncome,
                 ),
+                nowMillis = nowMillis,
             )
+            accountsLocalDataSource.upsert(updatedAccount)
+            refreshPendingAccountOperation(updatedAccount)
             transactionsLocalDataSource.upsert(transaction)
             syncLocalDataSource.upsert(
                 transaction.toPendingOperation(
@@ -150,6 +151,9 @@ internal class RoomTransactionsCommandHandler(
                     )
                 }
             accountsLocalDataSource.upsertAll(affectedAccounts)
+            affectedAccounts.forEach { account ->
+                refreshPendingAccountOperation(account)
+            }
             transactionsLocalDataSource.upsert(transaction)
             syncLocalDataSource.upsert(
                 transaction.toPendingOperation(
@@ -176,6 +180,22 @@ internal class RoomTransactionsCommandHandler(
             entityType = PendingEntityType.Account,
             entityClientId = accountClientId,
         )?.takeIf { it.operationType == PendingOperationType.Create }?.id
+
+    private suspend fun refreshPendingAccountOperation(account: AccountEntity) {
+        val operation = syncLocalDataSource.latestOperation(
+            entityType = PendingEntityType.Account,
+            entityClientId = account.clientId,
+        ) ?: return
+        syncLocalDataSource.upsert(
+            operation.copy(
+                payloadJson = json.encodeToString(account.toPendingPayload()),
+                status = PendingOperationStatus.Pending,
+                attemptCount = 0,
+                lastError = null,
+                nextAttemptAtMillis = null,
+            ),
+        )
+    }
 
     private fun TransactionEntity.toPendingOperation(
         operationType: PendingOperationType,

@@ -25,6 +25,15 @@ internal interface PendingOperationDao {
     @Query(
         """
         SELECT * FROM pending_operations
+        WHERE status = :status
+        ORDER BY created_at_millis, id
+        """,
+    )
+    suspend fun getByStatus(status: PendingOperationStatus): List<PendingOperationEntity>
+
+    @Query(
+        """
+        SELECT * FROM pending_operations
         WHERE entity_client_id = :entityClientId
         ORDER BY created_at_millis, id
         """,

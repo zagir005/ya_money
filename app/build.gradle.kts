@@ -56,6 +56,7 @@ dependencies {
     implementation(projects.finance.api)
     implementation(projects.finance.impl)
     implementation(libs.androidx.core.splashscreen)
+    implementation(libs.androidx.work.runtime)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)

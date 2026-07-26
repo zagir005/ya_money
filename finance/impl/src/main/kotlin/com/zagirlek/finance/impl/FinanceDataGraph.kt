@@ -22,6 +22,7 @@ import com.zagirlek.finance.impl.transaction.OfflineFirstTransactionsRepository
 import com.zagirlek.finance.impl.transaction.RoomTransactionsCommandHandler
 import com.zagirlek.finance.impl.transaction.TransactionsReadSynchronizer
 import com.zagirlek.finance.impl.transaction.remote.TransactionsRemoteDataSource
+import com.zagirlek.finance.impl.sync.OutboxDelivery
 import java.io.Closeable
 import java.time.Clock
 import kotlinx.serialization.json.Json
@@ -30,6 +31,7 @@ class FinanceDataGraph(
     context: Context,
     httpClient: FinanceHttpClient,
     clock: Clock = Clock.systemDefaultZone(),
+    onSyncRequested: () -> Unit = {},
 ) : Closeable {
     private val database = FinanceDatabaseFactory.create(context)
     private val transactionRunner = FinanceLocalTransactionRunner(database)
@@ -41,17 +43,20 @@ class FinanceDataGraph(
         pendingOperationDao = database.pendingOperationDao(),
         syncWindowDao = database.syncWindowDao(),
     )
+    private val accountsRemoteDataSource = AccountsRemoteDataSource(httpClient)
+    private val categoriesRemoteDataSource = CategoriesRemoteDataSource(httpClient)
+    private val transactionsRemoteDataSource = TransactionsRemoteDataSource(httpClient)
 
     private val accountsSynchronizer = AccountsReadSynchronizer(
         localDataSource = accountsLocalDataSource,
         transactionsLocalDataSource = transactionsLocalDataSource,
-        remoteDataSource = AccountsRemoteDataSource(httpClient),
+        remoteDataSource = accountsRemoteDataSource,
         transactionRunner = transactionRunner,
         clock = clock,
     )
     private val categoriesSynchronizer = CategoriesReadSynchronizer(
         localDataSource = categoriesLocalDataSource,
-        remoteDataSource = CategoriesRemoteDataSource(httpClient),
+        remoteDataSource = categoriesRemoteDataSource,
         transactionRunner = transactionRunner,
     )
     private val transactionsSynchronizer = TransactionsReadSynchronizer(
@@ -61,7 +66,7 @@ class FinanceDataGraph(
         categoriesLocalDataSource = categoriesLocalDataSource,
         transactionsLocalDataSource = transactionsLocalDataSource,
         syncLocalDataSource = syncLocalDataSource,
-        remoteDataSource = TransactionsRemoteDataSource(httpClient),
+        remoteDataSource = transactionsRemoteDataSource,
         transactionRunner = transactionRunner,
         clock = clock,
     )
@@ -81,11 +86,30 @@ class FinanceDataGraph(
         clock = clock,
         json = Json,
     )
+    private val outboxDelivery = OutboxDelivery(
+        accountsLocalDataSource = accountsLocalDataSource,
+        transactionsLocalDataSource = transactionsLocalDataSource,
+        categoriesLocalDataSource = categoriesLocalDataSource,
+        syncLocalDataSource = syncLocalDataSource,
+        accountsRemoteDataSource = accountsRemoteDataSource,
+        transactionsRemoteDataSource = transactionsRemoteDataSource,
+        transactionRunner = transactionRunner,
+        clock = clock,
+        json = Json,
+    )
+    val syncCoordinator = FinanceSyncCoordinator(
+        outboxDelivery = outboxDelivery,
+        accountsSynchronizer = accountsSynchronizer,
+        categoriesSynchronizer = categoriesSynchronizer,
+        transactionsSynchronizer = transactionsSynchronizer,
+        syncLocalDataSource = syncLocalDataSource,
+    )
 
     val accountsRepository: AccountsRepository = OfflineFirstAccountsRepository(
         localDataSource = accountsLocalDataSource,
-        readSynchronizer = accountsSynchronizer,
+        syncCoordinator = syncCoordinator,
         commandHandler = accountsCommandHandler,
+        onSyncRequested = onSyncRequested,
     )
     val categoriesRepository: CategoriesRepository = OfflineFirstCategoriesRepository(
         localDataSource = categoriesLocalDataSource,
@@ -93,8 +117,9 @@ class FinanceDataGraph(
     )
     val transactionsRepository: TransactionsRepository = OfflineFirstTransactionsRepository(
         localDataSource = transactionsLocalDataSource,
-        readSynchronizer = transactionsSynchronizer,
+        syncCoordinator = syncCoordinator,
         commandHandler = transactionsCommandHandler,
+        onSyncRequested = onSyncRequested,
     )
 
     override fun close() {

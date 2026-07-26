@@ -45,6 +45,20 @@ internal interface TransactionDao {
         syncedStatus: SyncStatus = SyncStatus.Synced,
     ): Int
 
+    @Query(
+        """
+        SELECT * FROM transactions
+        WHERE account_client_id = :accountClientId
+          AND sync_status IN (:pendingCreateStatus, :pendingUpdateStatus)
+        ORDER BY created_at_millis, client_id
+        """,
+    )
+    suspend fun getPendingForAccount(
+        accountClientId: String,
+        pendingCreateStatus: SyncStatus = SyncStatus.PendingCreate,
+        pendingUpdateStatus: SyncStatus = SyncStatus.PendingUpdate,
+    ): List<TransactionEntity>
+
     @Upsert
     suspend fun upsert(transaction: TransactionEntity)
 

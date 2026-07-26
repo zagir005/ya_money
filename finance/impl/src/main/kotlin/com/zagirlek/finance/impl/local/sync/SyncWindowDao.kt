@@ -6,6 +6,9 @@ import androidx.room.Upsert
 
 @Dao
 internal interface SyncWindowDao {
+    @Query("SELECT * FROM sync_windows ORDER BY start_epoch_day, end_epoch_day")
+    suspend fun getAll(): List<SyncWindowEntity>
+
     @Query(
         """
         SELECT * FROM sync_windows

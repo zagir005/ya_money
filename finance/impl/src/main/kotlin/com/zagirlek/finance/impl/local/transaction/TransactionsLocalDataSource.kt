@@ -33,6 +33,9 @@ internal class TransactionsLocalDataSource(
     suspend fun hasPendingForAccount(accountId: AccountId): Boolean =
         transactionDao.countPendingForAccount(accountId.value) > 0
 
+    suspend fun getPendingEntities(accountId: AccountId): List<TransactionEntity> =
+        transactionDao.getPendingForAccount(accountId.value)
+
     suspend fun upsert(transaction: TransactionEntity) = transactionDao.upsert(transaction)
 
     suspend fun upsertAll(transactions: List<TransactionEntity>) =

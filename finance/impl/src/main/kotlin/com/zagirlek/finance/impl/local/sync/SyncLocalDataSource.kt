@@ -5,6 +5,7 @@ import com.zagirlek.finance.api.transaction.TransactionPeriod
 import com.zagirlek.finance.impl.local.PendingEntityType
 import com.zagirlek.finance.impl.local.PendingOperationStatus
 import java.time.Instant
+import java.time.LocalDate
 
 internal class SyncLocalDataSource(
     private val pendingOperationDao: PendingOperationDao,
@@ -12,6 +13,9 @@ internal class SyncLocalDataSource(
 ) {
     suspend fun readyOperations(now: Instant): List<PendingOperationEntity> =
         pendingOperationDao.getReady(now.toEpochMilli())
+
+    suspend fun operations(status: PendingOperationStatus): List<PendingOperationEntity> =
+        pendingOperationDao.getByStatus(status)
 
     suspend fun operation(id: String): PendingOperationEntity? =
         pendingOperationDao.getById(id)
@@ -66,4 +70,14 @@ internal class SyncLocalDataSource(
             ),
         )
     }
+
+    suspend fun registeredPeriods(): List<TransactionPeriod> =
+        syncWindowDao.getAll()
+            .map { window ->
+                TransactionPeriod(
+                    startDate = LocalDate.ofEpochDay(window.startEpochDay),
+                    endDate = LocalDate.ofEpochDay(window.endEpochDay),
+                )
+            }
+            .distinct()
 }

@@ -20,4 +20,33 @@ internal class TransactionsRemoteDataSource(
             parameter("endDate", period.endDate.toString())
         }
     }
+
+    suspend fun createTransaction(
+        request: TransactionRequestDto,
+    ): TransactionWriteResult = withContext(ioContext) {
+        val response = httpClient.post<TransactionRequestDto, CreatedTransactionDto>(
+            path = "transactions",
+            body = request,
+        )
+        TransactionWriteResult(
+            remoteId = response.id.toLong(),
+            createdAt = response.createdAt,
+            updatedAt = response.updatedAt,
+        )
+    }
+
+    suspend fun updateTransaction(
+        remoteId: Long,
+        request: TransactionRequestDto,
+    ): TransactionWriteResult = withContext(ioContext) {
+        val response = httpClient.put<TransactionRequestDto, TransactionResponseDto>(
+            path = "transactions/$remoteId",
+            body = request,
+        )
+        TransactionWriteResult(
+            remoteId = response.id.toLong(),
+            createdAt = response.createdAt,
+            updatedAt = response.updatedAt,
+        )
+    }
 }
