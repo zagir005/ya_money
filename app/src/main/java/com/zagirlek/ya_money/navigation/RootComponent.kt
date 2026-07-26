@@ -9,6 +9,10 @@ import com.arkivanov.decompose.router.stack.pushNew
 import com.arkivanov.decompose.value.Value
 import com.zagirlek.analytics.AnalyticsComponent
 import com.zagirlek.analytics.DefaultAnalyticsComponent
+import com.zagirlek.accounts.AccountEditorComponent
+import com.zagirlek.accounts.AccountEditorMode
+import com.zagirlek.accounts.DefaultAccountEditorComponent
+import com.zagirlek.finance.api.account.AccountId
 import com.zagirlek.finance.api.account.AccountsRepository
 import com.zagirlek.finance.api.category.CategoriesRepository
 import com.zagirlek.finance.api.transaction.TransactionHistoryRepository
@@ -27,12 +31,15 @@ interface RootComponent {
         data object Analytics : Configuration
         data class CreateTransaction(val type: TransactionType) : Configuration
         data class EditTransaction(val transactionId: TransactionId) : Configuration
+        data object CreateAccount : Configuration
+        data class EditAccount(val accountId: AccountId) : Configuration
     }
 
     sealed interface Child {
         data class Main(val component: MainComponent) : Child
         data class Analytics(val component: AnalyticsComponent) : Child
         data class TransactionEditor(val component: TransactionEditorComponent) : Child
+        data class AccountEditor(val component: AccountEditorComponent) : Child
     }
 }
 
@@ -71,6 +78,12 @@ class DefaultRootComponent(
                 onEditTransactionRequested = { transactionId ->
                     navigation.pushNew(RootComponent.Configuration.EditTransaction(transactionId))
                 },
+                onCreateAccountRequested = {
+                    navigation.pushNew(RootComponent.Configuration.CreateAccount)
+                },
+                onEditAccountRequested = { accountId ->
+                    navigation.pushNew(RootComponent.Configuration.EditAccount(accountId))
+                },
             ),
         )
         RootComponent.Configuration.Analytics -> RootComponent.Child.Analytics(
@@ -95,6 +108,20 @@ class DefaultRootComponent(
                     mode = TransactionEditorMode.Edit(configuration.transactionId),
                 ),
             )
+        RootComponent.Configuration.CreateAccount ->
+            RootComponent.Child.AccountEditor(
+                component = createAccountEditor(
+                    componentContext = componentContext,
+                    mode = AccountEditorMode.Create,
+                ),
+            )
+        is RootComponent.Configuration.EditAccount ->
+            RootComponent.Child.AccountEditor(
+                component = createAccountEditor(
+                    componentContext = componentContext,
+                    mode = AccountEditorMode.Edit(configuration.accountId),
+                ),
+            )
     }
 
     private fun createTransactionEditor(
@@ -105,6 +132,16 @@ class DefaultRootComponent(
         mode = mode,
         transactionsRepository = transactionsRepository,
         categoriesRepository = categoriesRepository,
+        accountsRepository = accountsRepository,
+        onDismissRequested = { navigation.pop() },
+    )
+
+    private fun createAccountEditor(
+        componentContext: ComponentContext,
+        mode: AccountEditorMode,
+    ): AccountEditorComponent = DefaultAccountEditorComponent(
+        componentContext = componentContext,
+        mode = mode,
         accountsRepository = accountsRepository,
         onDismissRequested = { navigation.pop() },
     )

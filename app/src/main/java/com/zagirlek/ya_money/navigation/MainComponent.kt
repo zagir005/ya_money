@@ -11,6 +11,7 @@ import com.arkivanov.decompose.value.Value
 import com.zagirlek.accounts.AccountsComponent
 import com.zagirlek.accounts.DefaultAccountsComponent
 import com.zagirlek.finance.api.account.AccountsRepository
+import com.zagirlek.finance.api.account.AccountId
 import com.zagirlek.finance.api.transaction.TransactionId
 import com.zagirlek.finance.api.transaction.TransactionsRepository
 import com.zagirlek.transactions.DefaultTransactionsComponent
@@ -46,6 +47,8 @@ class DefaultMainComponent(
     private val onAnalyticsRequested: () -> Unit,
     private val onCreateTransactionRequested: (TransactionType) -> Unit,
     private val onEditTransactionRequested: (TransactionId) -> Unit,
+    private val onCreateAccountRequested: () -> Unit,
+    private val onEditAccountRequested: (AccountId) -> Unit,
 ) : MainComponent, ComponentContext by componentContext {
     private val navigation = PagesNavigation<MainTab>()
 
@@ -105,6 +108,8 @@ class DefaultMainComponent(
             component = DefaultAccountsComponent(
                 componentContext = componentContext,
                 accountsRepository = accountsRepository,
+                onCreateAccountRequested = onCreateAccountRequested,
+                onEditAccountRequested = onEditAccountRequested,
             ),
         )
     }

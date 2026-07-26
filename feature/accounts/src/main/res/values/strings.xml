@@ -2,4 +2,12 @@
     <string name="accounts_example_date">12 июня</string>
     <string name="accounts_summary_title">Баланс, всего</string>
     <string name="accounts_empty">Счетов пока нет</string>
+    <string name="account_editor_create_title">Новый счёт</string>
+    <string name="account_editor_edit_title">Редактирование счёта</string>
+    <string name="account_editor_name">Название</string>
+    <string name="account_editor_emoji">Эмодзи</string>
+    <string name="account_editor_emoji_error">Введите один эмодзи</string>
+    <string name="account_editor_balance">Баланс</string>
+    <string name="account_editor_currency">Валюта</string>
+    <string name="account_editor_save">Сохранить</string>
 </resources>

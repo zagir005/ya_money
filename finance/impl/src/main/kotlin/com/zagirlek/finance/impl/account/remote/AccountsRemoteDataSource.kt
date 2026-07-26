@@ -12,4 +12,16 @@ internal class AccountsRemoteDataSource(
     suspend fun getAccounts(): List<AccountDto> = withContext(ioContext) {
         httpClient.get(path = "accounts")
     }
+
+    suspend fun createAccount(request: AccountCreateRequestDto): AccountDto =
+        withContext(ioContext) {
+            httpClient.post(path = "accounts", body = request)
+        }
+
+    suspend fun updateAccount(
+        remoteId: Long,
+        request: AccountUpdateRequestDto,
+    ): AccountDto = withContext(ioContext) {
+        httpClient.put(path = "accounts/$remoteId", body = request)
+    }
 }

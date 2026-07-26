@@ -2,6 +2,7 @@ package com.zagirlek.accounts
 
 import com.arkivanov.decompose.ComponentContext
 import com.zagirlek.finance.api.account.Account
+import com.zagirlek.finance.api.account.AccountId
 import com.zagirlek.finance.api.account.AccountsRepository
 import com.zagirlek.finance.api.error.toNetworkError
 import com.zagirlek.finance.api.money.Money
@@ -21,6 +22,8 @@ import kotlin.coroutines.cancellation.CancellationException
 class DefaultAccountsComponent(
     componentContext: ComponentContext,
     private val accountsRepository: AccountsRepository,
+    private val onCreateAccountRequested: () -> Unit,
+    private val onEditAccountRequested: (AccountId) -> Unit,
     private val moneyFormatter: MoneyFormatter = DefaultMoneyFormatter(),
 ) : MviComponent<AccountsState, AccountsMutation, AccountsIntent, AccountsReducer>(
     reducer = AccountsReducer,
@@ -32,49 +35,56 @@ class DefaultAccountsComponent(
     override val state: StateFlow<AccountsState> = mutableState.asStateFlow()
     override val effects: Flow<AccountsEffect> = emptyFlow()
 
-    private var loadJob: Job? = null
+    private var refreshJob: Job? = null
 
     init {
-        loadAccounts()
+        observeAccounts()
+        refreshAccounts()
     }
 
     override fun accept(intent: AccountsIntent) {
         when (intent) {
-            is AccountsIntent.AccountClicked -> Unit
+            is AccountsIntent.AccountClicked ->
+                onEditAccountRequested(AccountId(intent.id))
             AccountsIntent.DateClicked -> Unit
             AccountsIntent.AnalyticsClicked -> Unit
             AccountsIntent.SettingsClicked -> Unit
-            AccountsIntent.AddClicked -> Unit
-            AccountsIntent.RetryClicked -> loadAccounts(isRefresh = true)
-            AccountsIntent.RefreshRequested -> loadAccounts(isRefresh = true)
+            AccountsIntent.AddClicked -> onCreateAccountRequested()
+            AccountsIntent.RetryClicked,
+            AccountsIntent.RefreshRequested,
+            -> refreshAccounts()
         }
     }
 
-    private fun loadAccounts(isRefresh: Boolean = false) {
-        if (loadJob?.isActive == true) return
+    private fun observeAccounts() {
+        componentScope.launch {
+            accountsRepository.observeAccounts().collect { accounts ->
+                accounts.toMutation().reduce(mutableState)
+            }
+        }
+    }
 
-        val isContentRefresh = isRefresh && mutableState.value is AccountsState.Content
-        if (isContentRefresh) {
+    private fun refreshAccounts() {
+        if (refreshJob?.isActive == true) return
+
+        if (mutableState.value is AccountsState.Content) {
             AccountsMutation.Refreshing.reduce(mutableState)
-        } else {
-            AccountsMutation.Loading.reduce(mutableState)
         }
 
-        loadJob = ioScope.launch {
-            val mutation = try {
-                accountsRepository.getAccounts().toMutation()
+        refreshJob = ioScope.launch {
+            try {
+                accountsRepository.refreshAccounts()
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
-                if (isContentRefresh) {
-                    AccountsMutation.RefreshFailed(error.toNetworkError())
-                } else {
-                    AccountsMutation.Error(error.toNetworkError())
+                componentScope.launch {
+                    val mutation = if (mutableState.value is AccountsState.Content) {
+                        AccountsMutation.RefreshFailed(error.toNetworkError())
+                    } else {
+                        AccountsMutation.Error(error.toNetworkError())
+                    }
+                    mutation.reduce(mutableState)
                 }
-            }
-
-            componentScope.launch {
-                mutation.reduce(mutableState)
             }
         }
     }

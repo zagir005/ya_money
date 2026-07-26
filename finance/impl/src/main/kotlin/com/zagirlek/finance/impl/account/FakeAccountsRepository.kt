@@ -3,22 +3,59 @@ package com.zagirlek.finance.impl.account
 import com.zagirlek.finance.api.account.Account
 import com.zagirlek.finance.api.account.AccountId
 import com.zagirlek.finance.api.account.AccountsRepository
+import com.zagirlek.finance.api.account.CreateAccount
+import com.zagirlek.finance.api.account.UpdateAccount
 import com.zagirlek.finance.api.money.CurrencyCode
 import com.zagirlek.finance.api.money.Money
 import java.math.BigDecimal
 import java.time.Instant
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
+import java.time.Clock
+import java.util.UUID
+import kotlinx.coroutines.flow.MutableStateFlow
 
-class FakeAccountsRepository : AccountsRepository {
-    override fun observeAccounts(): Flow<List<Account>> = flowOf(accounts)
+class FakeAccountsRepository(
+    private val clock: Clock = Clock.systemUTC(),
+) : AccountsRepository {
+    private val mutableAccounts = MutableStateFlow(initialAccounts)
+
+    override fun observeAccounts(): Flow<List<Account>> = mutableAccounts
 
     override suspend fun refreshAccounts() = Unit
 
-    override suspend fun getAccounts(): List<Account> = accounts
+    override suspend fun createAccount(command: CreateAccount): AccountId {
+        val accountId = AccountId(UUID.randomUUID().toString())
+        val now = clock.instant()
+        mutableAccounts.value += Account(
+            id = accountId,
+            name = command.name.trim(),
+            money = command.initialBalance,
+            emoji = command.emoji.trim(),
+            createdAt = now,
+            updatedAt = now,
+        )
+        return accountId
+    }
+
+    override suspend fun updateAccount(command: UpdateAccount) {
+        mutableAccounts.value = mutableAccounts.value.map { account ->
+            if (account.id == command.accountId) {
+                account.copy(
+                    name = command.name.trim(),
+                    emoji = command.emoji.trim(),
+                    money = command.balance,
+                    updatedAt = clock.instant(),
+                )
+            } else {
+                account
+            }
+        }
+    }
+
+    override suspend fun getAccounts(): List<Account> = mutableAccounts.value
 
     private companion object {
-        val accounts = listOf(
+        val initialAccounts = listOf(
             Account(
                 id = AccountId("account-main"),
                 name = "Основной счёт",

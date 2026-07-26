@@ -6,6 +6,7 @@ import com.zagirlek.finance.api.category.CategoriesRepository
 import com.zagirlek.finance.api.transaction.TransactionsRepository
 import com.zagirlek.finance.impl.account.AccountsReadSynchronizer
 import com.zagirlek.finance.impl.account.OfflineFirstAccountsRepository
+import com.zagirlek.finance.impl.account.RoomAccountsCommandHandler
 import com.zagirlek.finance.impl.account.remote.AccountsRemoteDataSource
 import com.zagirlek.finance.impl.category.CategoriesReadSynchronizer
 import com.zagirlek.finance.impl.category.OfflineFirstCategoriesRepository
@@ -73,10 +74,18 @@ class FinanceDataGraph(
         clock = clock,
         json = Json,
     )
+    private val accountsCommandHandler = RoomAccountsCommandHandler(
+        localDataSource = accountsLocalDataSource,
+        syncLocalDataSource = syncLocalDataSource,
+        transactionRunner = transactionRunner,
+        clock = clock,
+        json = Json,
+    )
 
     val accountsRepository: AccountsRepository = OfflineFirstAccountsRepository(
         localDataSource = accountsLocalDataSource,
         readSynchronizer = accountsSynchronizer,
+        commandHandler = accountsCommandHandler,
     )
     val categoriesRepository: CategoriesRepository = OfflineFirstCategoriesRepository(
         localDataSource = categoriesLocalDataSource,

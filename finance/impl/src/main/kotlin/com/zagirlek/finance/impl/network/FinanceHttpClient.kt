@@ -8,10 +8,15 @@ import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.put
+import io.ktor.client.request.setBody
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.serialization.ContentConvertException
@@ -37,6 +42,30 @@ class FinanceHttpClient(
         noinline configure: HttpRequestBuilder.() -> Unit = {},
     ): Response = request {
         client.get(requestUrl(path)) {
+            configure()
+        }
+    }
+
+    suspend inline fun <reified Request : Any, reified Response : Any> post(
+        path: String,
+        body: Request,
+        noinline configure: HttpRequestBuilder.() -> Unit = {},
+    ): Response = request {
+        client.post(requestUrl(path)) {
+            contentType(ContentType.Application.Json)
+            setBody(body)
+            configure()
+        }
+    }
+
+    suspend inline fun <reified Request : Any, reified Response : Any> put(
+        path: String,
+        body: Request,
+        noinline configure: HttpRequestBuilder.() -> Unit = {},
+    ): Response = request {
+        client.put(requestUrl(path)) {
+            contentType(ContentType.Application.Json)
+            setBody(body)
             configure()
         }
     }
