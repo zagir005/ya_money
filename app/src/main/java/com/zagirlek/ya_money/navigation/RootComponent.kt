@@ -15,6 +15,8 @@ import com.zagirlek.accounts.DefaultAccountEditorComponent
 import com.zagirlek.finance.api.account.AccountId
 import com.zagirlek.finance.api.account.AccountsRepository
 import com.zagirlek.finance.api.category.CategoriesRepository
+import com.zagirlek.finance.api.sync.FinanceSyncStatus
+import com.zagirlek.finance.api.sync.FinanceSyncStatusRepository
 import com.zagirlek.finance.api.transaction.TransactionHistoryRepository
 import com.zagirlek.finance.api.transaction.TransactionId
 import com.zagirlek.finance.api.transaction.TransactionsRepository
@@ -22,9 +24,15 @@ import com.zagirlek.transactions.DefaultTransactionEditorComponent
 import com.zagirlek.transactions.TransactionEditorComponent
 import com.zagirlek.transactions.TransactionEditorMode
 import com.zagirlek.transactions.TransactionType
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 
 interface RootComponent {
     val childStack: Value<ChildStack<Configuration, Child>>
+    val isOnline: StateFlow<Boolean>
+    val syncStatus: Flow<FinanceSyncStatus>
+
+    fun retrySync()
 
     sealed interface Configuration {
         data object Main : Configuration
@@ -49,8 +57,14 @@ class DefaultRootComponent(
     private val categoriesRepository: CategoriesRepository,
     private val transactionsRepository: TransactionsRepository,
     private val transactionHistoryRepository: TransactionHistoryRepository,
+    override val isOnline: StateFlow<Boolean>,
+    syncStatusRepository: FinanceSyncStatusRepository,
+    private val onRetrySyncRequested: () -> Unit,
 ) : RootComponent, ComponentContext by componentContext {
     private val navigation = StackNavigation<RootComponent.Configuration>()
+
+    override val syncStatus: Flow<FinanceSyncStatus> =
+        syncStatusRepository.observeStatus()
 
     override val childStack: Value<ChildStack<RootComponent.Configuration, RootComponent.Child>> = childStack(
         source = navigation,
@@ -59,6 +73,10 @@ class DefaultRootComponent(
         handleBackButton = true,
         childFactory = ::createChild,
     )
+
+    override fun retrySync() {
+        onRetrySyncRequested()
+    }
 
     private fun createChild(
         configuration: RootComponent.Configuration,

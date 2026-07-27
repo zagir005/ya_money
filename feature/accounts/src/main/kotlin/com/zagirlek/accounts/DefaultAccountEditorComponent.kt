@@ -5,7 +5,6 @@ import com.zagirlek.finance.api.account.Account
 import com.zagirlek.finance.api.account.AccountsRepository
 import com.zagirlek.finance.api.account.CreateAccount
 import com.zagirlek.finance.api.account.UpdateAccount
-import com.zagirlek.finance.api.error.toNetworkError
 import com.zagirlek.finance.api.money.CurrencyCode
 import com.zagirlek.finance.api.money.Money
 import com.zagirlek.ui.cmp.MviComponent
@@ -93,13 +92,8 @@ class DefaultAccountEditorComponent(
                 accountsRepository.refreshAccounts()
             } catch (error: CancellationException) {
                 throw error
-            } catch (error: Exception) {
-                if (mutableState.value is AccountEditorState.Loading) {
-                    componentScope.launch {
-                        AccountEditorMutation.LoadFailed(error.toNetworkError())
-                            .reduce(mutableState)
-                    }
-                }
+            } catch (_: Exception) {
+                // Existing local account data keeps the editor usable offline.
             }
         }
     }

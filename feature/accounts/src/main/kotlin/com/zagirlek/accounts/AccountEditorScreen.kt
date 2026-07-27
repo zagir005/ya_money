@@ -30,7 +30,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import com.zagirlek.finance.api.money.CurrencyCode
 import com.zagirlek.systemdesign.theme.YaMoneyDesign
 import com.zagirlek.ui.components.elements.BaseBottomSheet
-import com.zagirlek.ui.components.elements.NetworkErrorAlert
 import com.zagirlek.ui.components.elements.SelectionListItem
 import com.zagirlek.ui.components.elements.SelectionListItemControl
 
@@ -43,7 +42,6 @@ fun AccountEditorScreen(component: AccountEditorComponent) {
     ) {
         when (val value = state) {
             AccountEditorState.Loading -> EditorLoading()
-            is AccountEditorState.Error -> EditorError(value, component)
             is AccountEditorState.Content -> AccountEditorContent(
                 state = value,
                 onIntent = component::accept,
@@ -202,25 +200,6 @@ private fun EditorLoading() {
         contentAlignment = Alignment.Center,
     ) {
         CircularProgressIndicator()
-    }
-}
-
-@Composable
-private fun EditorError(
-    state: AccountEditorState.Error,
-    component: AccountEditorComponent,
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .fillMaxHeight(0.8f),
-        contentAlignment = Alignment.Center,
-    ) {
-        NetworkErrorAlert(
-            title = state.error.title,
-            message = state.error.message,
-            onRetryClicked = { component.accept(AccountEditorIntent.Dismissed) },
-        )
     }
 }
 

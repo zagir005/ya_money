@@ -6,11 +6,15 @@ import com.zagirlek.finance.impl.local.PendingEntityType
 import com.zagirlek.finance.impl.local.PendingOperationStatus
 import java.time.Instant
 import java.time.LocalDate
+import kotlinx.coroutines.flow.Flow
 
 internal class SyncLocalDataSource(
     private val pendingOperationDao: PendingOperationDao,
     private val syncWindowDao: SyncWindowDao,
 ) {
+    fun observeOperations(): Flow<List<PendingOperationEntity>> =
+        pendingOperationDao.observeAll()
+
     suspend fun readyOperations(now: Instant): List<PendingOperationEntity> =
         pendingOperationDao.getReady(now.toEpochMilli())
 

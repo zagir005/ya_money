@@ -64,4 +64,18 @@ internal interface TransactionDao {
 
     @Upsert
     suspend fun upsertAll(transactions: List<TransactionEntity>)
+
+    @Query(
+        """
+        UPDATE transactions
+        SET sync_status = :syncStatus,
+            updated_at_local_millis = :updatedAtLocalMillis
+        WHERE client_id = :clientId
+        """,
+    )
+    suspend fun updateSyncStatus(
+        clientId: String,
+        syncStatus: SyncStatus,
+        updatedAtLocalMillis: Long,
+    )
 }

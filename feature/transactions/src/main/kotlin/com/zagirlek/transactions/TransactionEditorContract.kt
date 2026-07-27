@@ -2,7 +2,6 @@ package com.zagirlek.transactions
 
 import com.zagirlek.finance.api.account.AccountId
 import com.zagirlek.finance.api.category.CategoryId
-import com.zagirlek.finance.api.error.NetworkError
 import com.zagirlek.finance.api.transaction.TransactionId
 import com.zagirlek.ui.mvi.Effect
 import com.zagirlek.ui.mvi.Intent
@@ -39,7 +38,6 @@ enum class TransactionEditorSelector {
 
 sealed interface TransactionEditorState : State {
     data object Loading : TransactionEditorState
-    data class Error(val error: NetworkError) : TransactionEditorState
 
     data class Content(
         val type: TransactionType,
@@ -79,7 +77,6 @@ sealed interface TransactionEditorIntent : Intent {
 
 sealed interface TransactionEditorMutation : Mutation {
     data class Loaded(val state: TransactionEditorState.Content) : TransactionEditorMutation
-    data class LoadFailed(val error: NetworkError) : TransactionEditorMutation
     data class AmountChanged(val value: String) : TransactionEditorMutation
     data class CategorySelected(val id: CategoryId) : TransactionEditorMutation
     data class AccountSelected(val id: AccountId) : TransactionEditorMutation
@@ -99,7 +96,6 @@ object TransactionEditorReducer :
         mutation: TransactionEditorMutation,
     ): TransactionEditorState = when (mutation) {
         is TransactionEditorMutation.Loaded -> mutation.state
-        is TransactionEditorMutation.LoadFailed -> TransactionEditorState.Error(mutation.error)
         is TransactionEditorMutation.AmountChanged -> state.contentOrSame {
             copy(amountInput = mutation.value, saveError = null)
         }

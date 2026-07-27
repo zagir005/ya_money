@@ -1,7 +1,6 @@
 package com.zagirlek.accounts
 
 import com.zagirlek.finance.api.account.AccountId
-import com.zagirlek.finance.api.error.NetworkError
 import com.zagirlek.finance.api.money.CurrencyCode
 import com.zagirlek.ui.mvi.Effect
 import com.zagirlek.ui.mvi.Intent
@@ -20,7 +19,6 @@ enum class AccountEditorSelector {
 
 sealed interface AccountEditorState : State {
     data object Loading : AccountEditorState
-    data class Error(val error: NetworkError) : AccountEditorState
 
     data class Content(
         val isCreating: Boolean,
@@ -53,7 +51,6 @@ sealed interface AccountEditorIntent : Intent {
 
 sealed interface AccountEditorMutation : Mutation {
     data class Loaded(val state: AccountEditorState.Content) : AccountEditorMutation
-    data class LoadFailed(val error: NetworkError) : AccountEditorMutation
     data class NameChanged(val value: String) : AccountEditorMutation
     data class EmojiChanged(val value: String) : AccountEditorMutation
     data class BalanceChanged(val value: String) : AccountEditorMutation
@@ -71,7 +68,6 @@ object AccountEditorReducer : MviReducer<AccountEditorState, AccountEditorMutati
         mutation: AccountEditorMutation,
     ): AccountEditorState = when (mutation) {
         is AccountEditorMutation.Loaded -> mutation.state
-        is AccountEditorMutation.LoadFailed -> AccountEditorState.Error(mutation.error)
         is AccountEditorMutation.NameChanged -> state.contentOrSame {
             copy(nameInput = mutation.value, saveError = null)
         }

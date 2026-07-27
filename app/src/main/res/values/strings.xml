@@ -5,4 +5,10 @@
 	<string name="tab_accounts">Счета</string>
 	<string name="income_placeholder">Доходы</string>
 	<string name="accounts_placeholder">Счета</string>
+	<string name="sync_status_offline">Нет интернета. Изменения сохраняются на устройстве.</string>
+	<string name="sync_status_unknown">Не удалось подтвердить операций: %1$d</string>
+	<string name="sync_status_failed">Не синхронизировано операций: %1$d</string>
+	<string name="sync_status_pending">Синхронизация изменений: %1$d</string>
+	<string name="sync_action_check">Проверить</string>
+	<string name="sync_action_retry">Повторить</string>
 </resources>

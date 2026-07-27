@@ -58,7 +58,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.zagirlek.systemdesign.theme.YaMoneyDesign
 import com.zagirlek.ui.components.elements.BaseBottomSheet
-import com.zagirlek.ui.components.elements.NetworkErrorAlert
 import com.zagirlek.ui.components.elements.SelectionListItem
 import com.zagirlek.ui.components.elements.SelectionListItemControl
 import java.time.Instant
@@ -84,18 +83,6 @@ fun TransactionEditorScreen(component: TransactionEditorComponent) {
                 contentAlignment = Alignment.Center,
             ) {
                 CircularProgressIndicator()
-            }
-            is TransactionEditorState.Error -> Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.8f),
-                contentAlignment = Alignment.Center,
-            ) {
-                NetworkErrorAlert(
-                    title = value.error.title,
-                    message = value.error.message,
-                    onRetryClicked = { component.accept(TransactionEditorIntent.Dismissed) },
-                )
             }
             is TransactionEditorState.Content -> TransactionEditorContent(
                 state = value,

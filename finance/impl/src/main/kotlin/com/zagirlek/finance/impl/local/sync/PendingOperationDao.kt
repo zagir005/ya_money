@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 internal interface PendingOperationDao {
+    @Query("SELECT * FROM pending_operations ORDER BY created_at_millis, id")
+    fun observeAll(): Flow<List<PendingOperationEntity>>
+
     @Query(
         """
         SELECT * FROM pending_operations

@@ -5,7 +5,6 @@ import com.zagirlek.finance.api.account.Account
 import com.zagirlek.finance.api.account.AccountsRepository
 import com.zagirlek.finance.api.category.CategoriesRepository
 import com.zagirlek.finance.api.category.Category
-import com.zagirlek.finance.api.error.toNetworkError
 import com.zagirlek.finance.api.money.Money
 import com.zagirlek.finance.api.transaction.CreateTransaction
 import com.zagirlek.finance.api.transaction.Transaction
@@ -106,13 +105,9 @@ class DefaultTransactionEditorComponent(
                 accountsRepository.refreshAccounts()
             } catch (error: CancellationException) {
                 throw error
-            } catch (error: Exception) {
-                if (mutableState.value is TransactionEditorState.Loading) {
-                    componentScope.launch {
-                        TransactionEditorMutation.LoadFailed(error.toNetworkError())
-                            .reduce(mutableState)
-                    }
-                }
+            } catch (_: Exception) {
+                // Room remains the source of truth. A failed background refresh
+                // must not replace an offline-capable editor with a network error.
             }
         }
     }

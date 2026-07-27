@@ -3,6 +3,7 @@ package com.zagirlek.finance.impl
 import android.content.Context
 import com.zagirlek.finance.api.account.AccountsRepository
 import com.zagirlek.finance.api.category.CategoriesRepository
+import com.zagirlek.finance.api.sync.FinanceSyncStatusRepository
 import com.zagirlek.finance.api.transaction.TransactionsRepository
 import com.zagirlek.finance.impl.account.AccountsReadSynchronizer
 import com.zagirlek.finance.impl.account.OfflineFirstAccountsRepository
@@ -23,6 +24,7 @@ import com.zagirlek.finance.impl.transaction.RoomTransactionsCommandHandler
 import com.zagirlek.finance.impl.transaction.TransactionsReadSynchronizer
 import com.zagirlek.finance.impl.transaction.remote.TransactionsRemoteDataSource
 import com.zagirlek.finance.impl.sync.OutboxDelivery
+import com.zagirlek.finance.impl.sync.RoomFinanceSyncStatusRepository
 import java.io.Closeable
 import java.time.Clock
 import kotlinx.serialization.json.Json
@@ -104,6 +106,15 @@ class FinanceDataGraph(
         transactionsSynchronizer = transactionsSynchronizer,
         syncLocalDataSource = syncLocalDataSource,
     )
+    val syncStatusRepository: FinanceSyncStatusRepository =
+        RoomFinanceSyncStatusRepository(
+            accountsLocalDataSource = accountsLocalDataSource,
+            transactionsLocalDataSource = transactionsLocalDataSource,
+            syncLocalDataSource = syncLocalDataSource,
+            transactionRunner = transactionRunner,
+            clock = clock,
+            onSyncRequested = onSyncRequested,
+        )
 
     val accountsRepository: AccountsRepository = OfflineFirstAccountsRepository(
         localDataSource = accountsLocalDataSource,

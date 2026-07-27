@@ -4,6 +4,7 @@ import com.zagirlek.finance.api.account.AccountId
 import com.zagirlek.finance.api.transaction.Transaction
 import com.zagirlek.finance.api.transaction.TransactionId
 import com.zagirlek.finance.api.transaction.TransactionPeriod
+import com.zagirlek.finance.impl.local.SyncStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.ZoneId
@@ -40,6 +41,16 @@ internal class TransactionsLocalDataSource(
 
     suspend fun upsertAll(transactions: List<TransactionEntity>) =
         transactionDao.upsertAll(transactions)
+
+    suspend fun updateSyncStatus(
+        transactionId: TransactionId,
+        syncStatus: SyncStatus,
+        updatedAtLocalMillis: Long,
+    ) = transactionDao.updateSyncStatus(
+        clientId = transactionId.value,
+        syncStatus = syncStatus,
+        updatedAtLocalMillis = updatedAtLocalMillis,
+    )
 }
 
 internal fun TransactionPeriod.toEpochMillisRange(zoneId: ZoneId): Pair<Long, Long> =
