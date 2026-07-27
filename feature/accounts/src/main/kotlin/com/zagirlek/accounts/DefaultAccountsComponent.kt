@@ -74,6 +74,9 @@ class DefaultAccountsComponent(
         refreshJob = ioScope.launch {
             try {
                 accountsRepository.refreshAccounts()
+                componentScope.launch {
+                    AccountsMutation.RefreshCompleted.reduce(mutableState)
+                }
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {

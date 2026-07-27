@@ -27,6 +27,17 @@ class AccountsReducerTest {
     }
 
     @Test
+    fun `successful refresh stops indicator without a new room emission`() {
+        assertEquals(
+            content,
+            AccountsReducer.reduce(
+                content.copy(isRefreshing = true),
+                AccountsMutation.RefreshCompleted,
+            ),
+        )
+    }
+
+    @Test
     fun `loading error switches screen to error state`() {
         val error = NetworkError.Network
 

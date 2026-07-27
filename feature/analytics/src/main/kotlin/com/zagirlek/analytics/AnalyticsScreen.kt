@@ -301,7 +301,8 @@ private fun AnalyticsOverview(
                         onRetryClicked = { onIntent(AnalyticsIntent.RetryClicked) },
                     )
                 }
-            } else if (transactionItems.isNotEmpty()) {
+            }
+            if (transactionItems.isNotEmpty()) {
                 item {
                     Text(
                         text = stringResource(R.string.analytics_transactions),

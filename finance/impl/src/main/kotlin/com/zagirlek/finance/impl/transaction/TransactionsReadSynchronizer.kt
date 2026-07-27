@@ -3,8 +3,6 @@ package com.zagirlek.finance.impl.transaction
 import com.zagirlek.finance.api.account.AccountId
 import com.zagirlek.finance.api.error.FinanceNetworkException
 import com.zagirlek.finance.api.transaction.TransactionPeriod
-import com.zagirlek.finance.impl.account.AccountsReadSynchronizer
-import com.zagirlek.finance.impl.category.CategoriesReadSynchronizer
 import com.zagirlek.finance.impl.category.remote.toEntity
 import com.zagirlek.finance.impl.local.FinanceLocalTransactionRunner
 import com.zagirlek.finance.impl.local.account.AccountEntity
@@ -15,6 +13,7 @@ import com.zagirlek.finance.impl.local.transaction.TransactionsLocalDataSource
 import com.zagirlek.finance.impl.transaction.remote.TransactionResponseDto
 import com.zagirlek.finance.impl.transaction.remote.TransactionsRemoteDataSource
 import com.zagirlek.finance.impl.transaction.remote.mergeIntoLocal
+import com.zagirlek.finance.impl.sync.retryServerFailures
 import java.time.Clock
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -23,8 +22,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 internal class TransactionsReadSynchronizer(
-    private val accountsSynchronizer: AccountsReadSynchronizer,
-    private val categoriesSynchronizer: CategoriesReadSynchronizer,
     private val accountsLocalDataSource: AccountsLocalDataSource,
     private val categoriesLocalDataSource: CategoriesLocalDataSource,
     private val transactionsLocalDataSource: TransactionsLocalDataSource,
@@ -36,9 +33,6 @@ internal class TransactionsReadSynchronizer(
     private val refreshMutex = Mutex()
 
     suspend fun refresh(period: TransactionPeriod) = refreshMutex.withLock {
-        accountsSynchronizer.refresh()
-        categoriesSynchronizer.refresh()
-
         val accounts = accountsLocalDataSource.getRemoteBackedEntities()
         val remoteTransactions = loadForAccounts(accounts, period)
         val syncedAt = clock.instant()
@@ -86,10 +80,12 @@ internal class TransactionsReadSynchronizer(
             async {
                 AccountTransactions(
                     account = account,
-                    transactions = remoteDataSource.getTransactions(
-                        accountRemoteId = requireNotNull(account.remoteId),
-                        period = period,
-                    ),
+                    transactions = retryServerFailures {
+                        remoteDataSource.getTransactions(
+                            accountRemoteId = requireNotNull(account.remoteId),
+                            period = period,
+                        )
+                    },
                 )
             }
         }.awaitAll()

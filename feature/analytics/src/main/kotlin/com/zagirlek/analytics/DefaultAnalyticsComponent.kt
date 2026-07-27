@@ -1,21 +1,24 @@
 package com.zagirlek.analytics
 
 import com.arkivanov.decompose.ComponentContext
+import com.zagirlek.analytics.ui.resolveAccountEmoji
+import com.zagirlek.analytics.ui.resolveCategoryEmoji
+import com.zagirlek.analytics.ui.summary.AnalyticsCategorySummary
+import com.zagirlek.finance.api.account.Account
 import com.zagirlek.finance.api.account.AccountsRepository
 import com.zagirlek.finance.api.error.toNetworkError
 import com.zagirlek.finance.api.money.CurrencyCode
 import com.zagirlek.finance.api.money.Money
-import com.zagirlek.finance.api.transaction.TransactionHistoryEntry
-import com.zagirlek.finance.api.transaction.TransactionHistoryRepository
+import com.zagirlek.finance.api.transaction.Transaction
 import com.zagirlek.finance.api.transaction.TransactionPeriod
+import com.zagirlek.finance.api.transaction.TransactionsRepository
 import com.zagirlek.ui.cmp.MviComponent
 import com.zagirlek.ui.formatter.DefaultMoneyFormatter
 import com.zagirlek.ui.formatter.MoneyFormatter
 import com.zagirlek.ui.formatter.format
-import com.zagirlek.analytics.ui.summary.AnalyticsCategorySummary
-import com.zagirlek.analytics.ui.resolveAccountEmoji
-import com.zagirlek.analytics.ui.resolveCategoryEmoji
-import com.zagirlek.finance.api.account.Account
+import java.time.LocalDate
+import kotlin.coroutines.cancellation.CancellationException
+import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -23,14 +26,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import kotlin.coroutines.cancellation.CancellationException
-import kotlin.coroutines.coroutineContext
 
 class DefaultAnalyticsComponent(
     componentContext: ComponentContext,
-    private val transactionHistoryRepository: TransactionHistoryRepository,
+    private val transactionsRepository: TransactionsRepository,
     private val accountsRepository: AccountsRepository,
     private val onBackRequested: () -> Unit,
     private val moneyFormatter: MoneyFormatter = DefaultMoneyFormatter(),
@@ -46,21 +47,30 @@ class DefaultAnalyticsComponent(
         ),
     )
     private val mutableEffects = MutableSharedFlow<AnalyticsEffect>(extraBufferCapacity = 1)
-    private var loadJob: Job? = null
+    private var observationJob: Job? = null
+    private var refreshJob: Job? = null
     private var filterJob: Job? = null
 
     override val state: StateFlow<AnalyticsState> = mutableState.asStateFlow()
     override val effects: Flow<AnalyticsEffect> = mutableEffects.asSharedFlow()
 
     init {
-        loadAnalytics()
+        observePeriod(mutableState.value.period)
+        refreshPeriod(
+            period = mutableState.value.period,
+            showRefreshing = false,
+        )
     }
 
     override fun accept(intent: AnalyticsIntent) {
         when (intent) {
             AnalyticsIntent.BackClicked -> onBackRequested()
-            AnalyticsIntent.RetryClicked -> loadAnalytics(isRefresh = true)
-            AnalyticsIntent.RefreshRequested -> loadAnalytics(isRefresh = true)
+            AnalyticsIntent.RetryClicked,
+            AnalyticsIntent.RefreshRequested,
+            -> refreshPeriod(
+                period = mutableState.value.period,
+                showRefreshing = true,
+            )
             AnalyticsIntent.TypeFilterClicked -> showFilterSheet(AnalyticsFilterSheet.Type)
             AnalyticsIntent.PeriodFilterClicked -> showFilterSheet(AnalyticsFilterSheet.Period)
             AnalyticsIntent.CustomPeriodClicked -> showFilterSheet(AnalyticsFilterSheet.Calendar)
@@ -73,10 +83,10 @@ class DefaultAnalyticsComponent(
                     categoryIds = null,
                 ),
             )
-            is AnalyticsIntent.PeriodPresetApplied -> loadAnalytics(
-                period = intent.preset.toPeriod(LocalDate.now()),
+            is AnalyticsIntent.PeriodPresetApplied -> changePeriod(
+                intent.preset.toPeriod(LocalDate.now()),
             )
-            is AnalyticsIntent.PeriodApplied -> loadAnalytics(period = intent.period)
+            is AnalyticsIntent.PeriodApplied -> changePeriod(intent.period)
             is AnalyticsIntent.CategoriesApplied -> updateFilters(
                 mutableState.value.filters.copy(categoryIds = intent.categoryIds),
             )
@@ -86,71 +96,79 @@ class DefaultAnalyticsComponent(
         }
     }
 
-    private fun loadAnalytics(
-        period: TransactionPeriod = mutableState.value.period,
-        isRefresh: Boolean = false,
-    ) {
-        val currentState = mutableState.value
-        val periodChanged = period != currentState.period
-        if (periodChanged) {
-            loadJob?.cancel()
-        } else if (loadJob?.isActive == true) {
+    private fun changePeriod(period: TransactionPeriod) {
+        if (period == mutableState.value.period) {
+            refreshPeriod(period = period, showRefreshing = true)
             return
         }
+
         filterJob?.cancel()
+        refreshJob?.cancel()
+        AnalyticsMutation.Loading(
+            period = period,
+            filters = mutableState.value.filters,
+        ).reduce(mutableState)
+        observePeriod(period)
+        refreshPeriod(period = period, showRefreshing = false)
+    }
 
-        val isOverviewRefresh = isRefresh && (
-            currentState is AnalyticsState.Content || currentState is AnalyticsState.Empty
-        )
-        if (isOverviewRefresh) {
-            AnalyticsMutation.Refreshing.reduce(mutableState)
-        } else {
-            AnalyticsMutation.Loading(
-                period = period,
-                filters = currentState.filters,
-            ).reduce(mutableState)
-        }
-
-        loadJob = ioScope.launch {
-            val result = try {
-                val accounts = accountsRepository.getAccounts()
-                val history = transactionHistoryRepository.getHistory(period)
-                    .sortedByDescending { it.occurredAt }
-
-                AnalyticsLoadResult.Success(
-                    transactions = history,
-                    accounts = accounts,
-                )
+    private fun observePeriod(period: TransactionPeriod) {
+        observationJob?.cancel()
+        observationJob = componentScope.launch {
+            try {
+                combine(
+                    transactionsRepository.observeTransactions(period),
+                    accountsRepository.observeAccounts(),
+                ) { transactions, accounts ->
+                    AnalyticsData(
+                        transactions = transactions.sortedByDescending(Transaction::occurredAt),
+                        accounts = accounts,
+                    )
+                }.collect { data ->
+                    if (period != mutableState.value.period) return@collect
+                    recalculateContent(
+                        period = period,
+                        filters = mutableState.value.filters,
+                        allTransactions = data.transactions,
+                        accounts = data.accounts,
+                    )
+                }
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
-                AnalyticsLoadResult.Failure(
-                    mutation = if (isOverviewRefresh) {
-                        AnalyticsMutation.RefreshFailed(error.toNetworkError())
-                    } else {
-                        AnalyticsMutation.Error(
-                            error = error.toNetworkError(),
-                            period = period,
-                            filters = currentState.filters,
-                        )
-                    },
-                )
+                AnalyticsMutation.Error(
+                    error = error.toNetworkError(),
+                    period = period,
+                    filters = mutableState.value.filters,
+                ).reduce(mutableState)
             }
+        }
+    }
 
-            componentScope.launch {
-                when (result) {
-                    is AnalyticsLoadResult.Success -> {
-                        if (period != mutableState.value.period) return@launch
+    private fun refreshPeriod(
+        period: TransactionPeriod,
+        showRefreshing: Boolean,
+    ) {
+        if (refreshJob?.isActive == true) return
+        if (showRefreshing) {
+            AnalyticsMutation.Refreshing.reduce(mutableState)
+        }
 
-                        recalculateContent(
-                            period = period,
-                            filters = mutableState.value.filters,
-                            allTransactions = result.transactions,
-                            accounts = result.accounts,
-                        )
+        refreshJob = ioScope.launch {
+            try {
+                transactionsRepository.refreshTransactions(period)
+                componentScope.launch {
+                    if (period == mutableState.value.period) {
+                        AnalyticsMutation.RefreshCompleted.reduce(mutableState)
                     }
-                    is AnalyticsLoadResult.Failure -> {
-                        result.mutation.reduce(mutableState)
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                componentScope.launch {
+                    if (period == mutableState.value.period) {
+                        AnalyticsMutation.RefreshFailed(error.toNetworkError())
+                            .reduce(mutableState)
                     }
                 }
             }
@@ -181,7 +199,7 @@ class DefaultAnalyticsComponent(
     private fun recalculateContent(
         period: TransactionPeriod,
         filters: AnalyticsFilters,
-        allTransactions: List<TransactionHistoryEntry>,
+        allTransactions: List<Transaction>,
         accounts: List<Account>,
     ) {
         filterJob?.cancel()
@@ -219,7 +237,7 @@ class DefaultAnalyticsComponent(
     private fun currentContentMutation(
         period: TransactionPeriod,
         filters: AnalyticsFilters,
-        transactionsSource: List<TransactionHistoryEntry>,
+        transactionsSource: List<Transaction>,
         accounts: List<Account>,
     ): AnalyticsMutation {
         val transactions = filteredTransactions(transactionsSource, filters)
@@ -248,32 +266,35 @@ class DefaultAnalyticsComponent(
     }
 
     private fun filteredTransactions(
-        transactions: List<TransactionHistoryEntry>,
+        transactions: List<Transaction>,
         filters: AnalyticsFilters,
-    ): List<TransactionHistoryEntry> = transactions
+    ): List<Transaction> = transactions
         .asSequence()
         .filter { filters.type == null || it.category.type == filters.type }
-        .filter { filters.categoryIds == null || it.category.id in filters.categoryIds!! }
+        .filter {
+            filters.categoryIds == null ||
+                it.category.id.value in requireNotNull(filters.categoryIds)
+        }
         .filter { filters.accountId == null || it.accountId == filters.accountId }
-        .sortedByDescending(TransactionHistoryEntry::occurredAt)
+        .sortedByDescending(Transaction::occurredAt)
         .toList()
 
     private fun createFilterOptions(
-        transactions: List<TransactionHistoryEntry>,
+        transactions: List<Transaction>,
         accounts: List<Account>,
         filters: AnalyticsFilters,
     ): AnalyticsFilterOptions = AnalyticsFilterOptions(
         categories = transactions
             .asSequence()
             .filter { filters.type == null || it.category.type == filters.type }
-            .map(TransactionHistoryEntry::category)
-            .distinctBy { it.id }
-            .sortedBy { it.name }
+            .map(Transaction::category)
+            .distinctBy { category -> category.id }
+            .sortedBy { category -> category.name }
             .map { category ->
                 AnalyticsCategoryOptionUi(
-                    id = category.id,
+                    id = category.id.value,
                     name = category.name,
-                    emoji = resolveCategoryEmoji(category.id, category.emoji),
+                    emoji = resolveCategoryEmoji(category.id.value, category.emoji),
                 )
             }
             .toList(),
@@ -287,40 +308,35 @@ class DefaultAnalyticsComponent(
     )
 
     private fun createTransactionItems(
-        transactions: List<TransactionHistoryEntry>,
+        transactions: List<Transaction>,
         accounts: List<Account>,
     ): List<AnalyticsTransactionItemUi> {
-        val accountNames = accounts.associateBy({ it.id }, { it.name })
+        val accountNames = accounts.associateBy(Account::id, Account::name)
         return transactions.map { transaction ->
             AnalyticsTransactionItemUi(
                 id = transaction.id.value,
-                title = transaction.description?.takeIf(String::isNotBlank) ?: transaction.category.name,
+                title = transaction.comment?.takeIf(String::isNotBlank)
+                    ?: transaction.category.name,
                 subtitle = accountNames[transaction.accountId] ?: UNKNOWN_ACCOUNT_NAME,
-                emoji = resolveCategoryEmoji(transaction.category.id, transaction.category.emoji),
-                amount = Money(transaction.amount, CurrencyCode.RUB).format(moneyFormatter),
+                emoji = resolveCategoryEmoji(
+                    transaction.category.id.value,
+                    transaction.category.emoji,
+                ),
+                amount = transaction.money.format(moneyFormatter),
             )
         }
     }
 
-    private sealed interface AnalyticsLoadResult {
-        data class Success(
-            val transactions: List<TransactionHistoryEntry>,
-            val accounts: List<Account>,
-        ) : AnalyticsLoadResult
-
-        data class Failure(
-            val mutation: AnalyticsMutation,
-        ) : AnalyticsLoadResult
-    }
-
-    private fun createSummary(transactions: List<TransactionHistoryEntry>): AnalyticsSummaryUi {
+    private fun createSummary(transactions: List<Transaction>): AnalyticsSummaryUi {
         val categories = transactions
-            .groupBy { it.category.id }
+            .groupBy { transaction -> transaction.category.id }
             .map { (categoryId, categoryTransactions) ->
                 val category = categoryTransactions.first().category
-                val amount = categoryTransactions.sumOf(TransactionHistoryEntry::amount)
+                val amount = categoryTransactions.sumOf { transaction ->
+                    transaction.money.amount
+                }
                 AnalyticsCategorySummary(
-                    categoryId = categoryId,
+                    categoryId = categoryId.value,
                     categoryName = category.name,
                     categoryEmoji = category.emoji,
                     amount = amount,
@@ -329,12 +345,17 @@ class DefaultAnalyticsComponent(
             }
             .sortedByDescending(AnalyticsCategorySummary::amount)
 
-        val total = transactions.sumOf(TransactionHistoryEntry::amount)
+        val total = transactions.sumOf { transaction -> transaction.money.amount }
         return AnalyticsSummaryUi(
             total = Money(total, CurrencyCode.RUB).format(moneyFormatter),
             categories = categories,
         )
     }
+
+    private data class AnalyticsData(
+        val transactions: List<Transaction>,
+        val accounts: List<Account>,
+    )
 
     private companion object {
         const val UNKNOWN_ACCOUNT_NAME = "Неизвестный счёт"

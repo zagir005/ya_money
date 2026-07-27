@@ -115,15 +115,14 @@ private fun AccountsList(
                         onRetryClicked = onRefresh,
                     )
                 }
-            } else {
-                items(items = state.items, key = AccountItemUi::id) { item ->
+            }
+            items(items = state.items, key = AccountItemUi::id) { item ->
                 FinanceListItem(
                     lead = item.lead,
                     content = item.content,
                     trail = item.trail,
                     onClick = { onAccountClicked(item.id) },
                 )
-                }
             }
         }
     }

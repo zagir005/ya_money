@@ -82,7 +82,9 @@ internal class OutboxDelivery(
             .filter { operation -> operation.entityType == PendingEntityType.Account }
         if (operations.isEmpty()) return
 
-        val remoteAccounts = accountsRemoteDataSource.getAccounts()
+        val remoteAccounts = retryServerFailures(retryDelay = retryDelay) {
+            accountsRemoteDataSource.getAccounts()
+        }
         operations.forEach { operation ->
             val payload = json.decodeFromString<PendingAccountPayload>(operation.payloadJson)
             val submittedBalance = accountBaseBalance(payload)
@@ -112,10 +114,13 @@ internal class OutboxDelivery(
             val accountRemoteId = account.remoteId ?: return@forEach
             val transactionDate = Instant.ofEpochMilli(payload.transactionDateMillis)
             val localDate = transactionDate.atZone(ZoneId.systemDefault()).toLocalDate()
-            val matches = transactionsRemoteDataSource.getTransactions(
-                accountRemoteId = accountRemoteId,
-                period = TransactionPeriod(localDate, localDate),
-            ).filter { remote ->
+            val remoteTransactions = retryServerFailures(retryDelay = retryDelay) {
+                transactionsRemoteDataSource.getTransactions(
+                    accountRemoteId = accountRemoteId,
+                    period = TransactionPeriod(localDate, localDate),
+                )
+            }
+            val matches = remoteTransactions.filter { remote ->
                 remote.account.id.toLong() == accountRemoteId &&
                     remote.category.id == payload.categoryId &&
                     runCatching { BigDecimal(remote.amount) == BigDecimal(payload.amount) }
@@ -523,7 +528,7 @@ internal fun classifySyncFailure(
     error: Exception,
 ): SyncFailureAction = when (error) {
     is FinanceNetworkException.ServerFailure -> {
-        if (completedAttempts + 1 < MaxServerAttempts) {
+        if (completedAttempts + 1 < ServerRetryMaxAttempts) {
             SyncFailureAction.RetryServerFailure(ServerRetryDelayMillis)
         } else {
             SyncFailureAction.MarkFailed
@@ -598,7 +603,5 @@ private fun AccountDto.toSyncedEntity(
     throw FinanceNetworkException.InvalidResponse(error)
 }
 
-private const val MaxServerAttempts = 3
-private const val ServerRetryDelayMillis = 2_000L
 private const val NetworkRetryDelayMillis = 10_000L
 private const val UnknownResultMatchWindowMillis = 5 * 60 * 1_000L

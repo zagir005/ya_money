@@ -82,6 +82,9 @@ class DefaultTransactionsComponent(
         refreshJob = ioScope.launch {
             try {
                 transactionsRepository.refreshTransactions(period)
+                componentScope.launch {
+                    TransactionsMutation.RefreshCompleted.reduce(mutableState)
+                }
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {

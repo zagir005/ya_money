@@ -1,7 +1,6 @@
 package com.zagirlek.finance.api.account
 
 import com.zagirlek.finance.api.money.Money
-import java.math.BigDecimal
 import java.time.Instant
 
 @JvmInline
@@ -18,21 +17,7 @@ data class Account(
     val emoji: String,
     val createdAt: Instant,
     val updatedAt: Instant,
-) {
-    @Deprecated(
-        message = "Use money.amount.",
-        replaceWith = ReplaceWith("money.amount"),
-    )
-    val balance: BigDecimal
-        get() = money.amount
-
-    @Deprecated(
-        message = "Use money.currency.",
-        replaceWith = ReplaceWith("money.currency"),
-    )
-    val currency: String
-        get() = money.currency.value
-}
+)
 
 data class CreateAccount(
     val name: String,

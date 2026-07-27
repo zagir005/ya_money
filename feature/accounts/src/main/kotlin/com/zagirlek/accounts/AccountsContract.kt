@@ -42,6 +42,7 @@ sealed interface AccountsMutation : Mutation {
     data object Empty : AccountsMutation
     data class Error(val error: NetworkError) : AccountsMutation
     data object Refreshing : AccountsMutation
+    data object RefreshCompleted : AccountsMutation
     data class RefreshFailed(val error: NetworkError) : AccountsMutation
 
     data class Content(
@@ -62,6 +63,10 @@ object AccountsReducer : MviReducer<AccountsState, AccountsMutation> {
         is AccountsMutation.Error -> AccountsState.Error(mutation.error)
         AccountsMutation.Refreshing -> (state as? AccountsState.Content)?.copy(
             isRefreshing = true,
+            refreshError = null,
+        ) ?: state
+        AccountsMutation.RefreshCompleted -> (state as? AccountsState.Content)?.copy(
+            isRefreshing = false,
             refreshError = null,
         ) ?: state
         is AccountsMutation.RefreshFailed -> (state as? AccountsState.Content)?.copy(isRefreshing = false)

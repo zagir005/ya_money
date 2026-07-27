@@ -17,7 +17,6 @@ import com.zagirlek.finance.api.account.AccountsRepository
 import com.zagirlek.finance.api.category.CategoriesRepository
 import com.zagirlek.finance.api.sync.FinanceSyncStatus
 import com.zagirlek.finance.api.sync.FinanceSyncStatusRepository
-import com.zagirlek.finance.api.transaction.TransactionHistoryRepository
 import com.zagirlek.finance.api.transaction.TransactionId
 import com.zagirlek.finance.api.transaction.TransactionsRepository
 import com.zagirlek.transactions.DefaultTransactionEditorComponent
@@ -56,7 +55,6 @@ class DefaultRootComponent(
     private val accountsRepository: AccountsRepository,
     private val categoriesRepository: CategoriesRepository,
     private val transactionsRepository: TransactionsRepository,
-    private val transactionHistoryRepository: TransactionHistoryRepository,
     override val isOnline: StateFlow<Boolean>,
     syncStatusRepository: FinanceSyncStatusRepository,
     private val onRetrySyncRequested: () -> Unit,
@@ -107,7 +105,7 @@ class DefaultRootComponent(
         RootComponent.Configuration.Analytics -> RootComponent.Child.Analytics(
             component = DefaultAnalyticsComponent(
                 componentContext = componentContext,
-                transactionHistoryRepository = transactionHistoryRepository,
+                transactionsRepository = transactionsRepository,
                 accountsRepository = accountsRepository,
                 onBackRequested = { navigation.pop() },
             ),

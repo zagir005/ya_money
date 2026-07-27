@@ -42,6 +42,7 @@ sealed interface TransactionsMutation : Mutation {
     data object Empty : TransactionsMutation
     data class Error(val error: NetworkError) : TransactionsMutation
     data object Refreshing : TransactionsMutation
+    data object RefreshCompleted : TransactionsMutation
     data class RefreshFailed(val error: NetworkError) : TransactionsMutation
 
     data class Content(
@@ -62,6 +63,10 @@ object TransactionsReducer : MviReducer<TransactionsState, TransactionsMutation>
         is TransactionsMutation.Error -> TransactionsState.Error(mutation.error)
         TransactionsMutation.Refreshing -> (state as? TransactionsState.Content)?.copy(
             isRefreshing = true,
+            refreshError = null,
+        ) ?: state
+        TransactionsMutation.RefreshCompleted -> (state as? TransactionsState.Content)?.copy(
+            isRefreshing = false,
             refreshError = null,
         ) ?: state
         is TransactionsMutation.RefreshFailed -> (state as? TransactionsState.Content)?.copy(isRefreshing = false)

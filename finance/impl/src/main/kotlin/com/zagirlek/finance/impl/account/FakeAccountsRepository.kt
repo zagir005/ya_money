@@ -52,8 +52,6 @@ class FakeAccountsRepository(
         }
     }
 
-    override suspend fun getAccounts(): List<Account> = mutableAccounts.value
-
     private companion object {
         val initialAccounts = listOf(
             Account(

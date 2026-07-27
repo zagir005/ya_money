@@ -35,4 +35,5 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.decompose)
     implementation(libs.kotlinx.coroutines.core)
+    testImplementation(libs.junit)
 }

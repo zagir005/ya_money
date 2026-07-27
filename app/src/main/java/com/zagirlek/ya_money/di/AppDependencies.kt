@@ -4,11 +4,9 @@ import android.content.Context
 import com.zagirlek.finance.api.account.AccountsRepository
 import com.zagirlek.finance.api.category.CategoriesRepository
 import com.zagirlek.finance.api.sync.FinanceSyncStatusRepository
-import com.zagirlek.finance.api.transaction.TransactionHistoryRepository
 import com.zagirlek.finance.api.transaction.TransactionsRepository
 import com.zagirlek.finance.impl.FinanceDataGraph
 import com.zagirlek.finance.impl.network.FinanceHttpClient
-import com.zagirlek.finance.impl.transaction.remote.RemoteTransactionHistoryRepository
 import com.zagirlek.ya_money.BuildConfig
 import java.io.Closeable
 import kotlinx.coroutines.CoroutineScope
@@ -35,10 +33,6 @@ class AppDependencies(
     val syncStatusRepository: FinanceSyncStatusRepository =
         financeDataGraph.syncStatusRepository
     val financeSyncCoordinator = financeDataGraph.syncCoordinator
-    val transactionHistoryRepository: TransactionHistoryRepository = RemoteTransactionHistoryRepository(
-        accountsRepository = accountsRepository,
-        httpClient = financeHttpClient,
-    )
 
     fun retrySync() {
         applicationScope.launch {

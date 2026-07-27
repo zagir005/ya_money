@@ -4,7 +4,7 @@ import com.zagirlek.analytics.ui.summary.AnalyticsCategorySummary
 import com.zagirlek.finance.api.account.Account
 import com.zagirlek.finance.api.account.AccountId
 import com.zagirlek.finance.api.error.NetworkError
-import com.zagirlek.finance.api.transaction.TransactionHistoryEntry
+import com.zagirlek.finance.api.transaction.Transaction
 import com.zagirlek.finance.api.transaction.TransactionPeriod
 import com.zagirlek.finance.api.transaction.TransactionType
 import com.zagirlek.ui.mvi.Effect
@@ -25,8 +25,8 @@ sealed interface AnalyticsState : State {
 
     data class Content(
         override val period: TransactionPeriod,
-        val allTransactions: List<TransactionHistoryEntry>,
-        val transactions: List<TransactionHistoryEntry>,
+        val allTransactions: List<Transaction>,
+        val transactions: List<Transaction>,
         val accounts: List<Account>,
         override val filters: AnalyticsFilters,
         val summary: AnalyticsSummaryUi,
@@ -38,7 +38,7 @@ sealed interface AnalyticsState : State {
 
     data class Empty(
         override val period: TransactionPeriod,
-        val allTransactions: List<TransactionHistoryEntry>,
+        val allTransactions: List<Transaction>,
         val accounts: List<Account>,
         override val filters: AnalyticsFilters,
         val summary: AnalyticsSummaryUi,
@@ -79,8 +79,8 @@ sealed interface AnalyticsMutation : Mutation {
 
     data class Content(
         val period: TransactionPeriod,
-        val allTransactions: List<TransactionHistoryEntry>,
-        val transactions: List<TransactionHistoryEntry>,
+        val allTransactions: List<Transaction>,
+        val transactions: List<Transaction>,
         val accounts: List<Account>,
         val filters: AnalyticsFilters,
         val summary: AnalyticsSummaryUi,
@@ -90,7 +90,7 @@ sealed interface AnalyticsMutation : Mutation {
 
     data class Empty(
         val period: TransactionPeriod,
-        val allTransactions: List<TransactionHistoryEntry>,
+        val allTransactions: List<Transaction>,
         val accounts: List<Account>,
         val filters: AnalyticsFilters,
         val summary: AnalyticsSummaryUi,
@@ -104,6 +104,7 @@ sealed interface AnalyticsMutation : Mutation {
     ) : AnalyticsMutation
     data class FiltersUpdated(val filters: AnalyticsFilters) : AnalyticsMutation
     data object Refreshing : AnalyticsMutation
+    data object RefreshCompleted : AnalyticsMutation
     data class RefreshFailed(val error: NetworkError) : AnalyticsMutation
 }
 
@@ -217,6 +218,11 @@ object AnalyticsReducer : MviReducer<AnalyticsState, AnalyticsMutation> {
             is AnalyticsState.Empty -> state.copy(isRefreshing = true, historyError = null)
             else -> state
         }
+        AnalyticsMutation.RefreshCompleted -> when (state) {
+            is AnalyticsState.Content -> state.copy(isRefreshing = false, historyError = null)
+            is AnalyticsState.Empty -> state.copy(isRefreshing = false, historyError = null)
+            else -> state
+        }
         is AnalyticsMutation.RefreshFailed -> when (state) {
             is AnalyticsState.Content -> state.copy(
                 isRefreshing = false,
@@ -226,11 +232,7 @@ object AnalyticsReducer : MviReducer<AnalyticsState, AnalyticsMutation> {
                 isRefreshing = false,
                 historyError = mutation.error,
             )
-            else -> AnalyticsState.Error(
-                error = mutation.error,
-                period = state.period,
-                filters = state.filters,
-            )
+            else -> state
         }
     }
 }

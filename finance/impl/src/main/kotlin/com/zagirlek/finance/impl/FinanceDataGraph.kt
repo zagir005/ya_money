@@ -62,8 +62,6 @@ class FinanceDataGraph(
         transactionRunner = transactionRunner,
     )
     private val transactionsSynchronizer = TransactionsReadSynchronizer(
-        accountsSynchronizer = accountsSynchronizer,
-        categoriesSynchronizer = categoriesSynchronizer,
         accountsLocalDataSource = accountsLocalDataSource,
         categoriesLocalDataSource = categoriesLocalDataSource,
         transactionsLocalDataSource = transactionsLocalDataSource,

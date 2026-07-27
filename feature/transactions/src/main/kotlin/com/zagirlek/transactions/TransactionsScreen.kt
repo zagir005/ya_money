@@ -122,15 +122,14 @@ private fun TransactionsList(
                         onRetryClicked = onRefresh,
                     )
                 }
-            } else {
-                items(items = state.items, key = TransactionItemUi::id) { item ->
-                    FinanceListItem(
-                        lead = item.lead,
-                        content = item.title,
-                        trail = item.trail,
-                        onClick = { onTransactionClicked(item.id) },
-                    )
-                }
+            }
+            items(items = state.items, key = TransactionItemUi::id) { item ->
+                FinanceListItem(
+                    lead = item.lead,
+                    content = item.title,
+                    trail = item.trail,
+                    onClick = { onTransactionClicked(item.id) },
+                )
             }
         }
     }

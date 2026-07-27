@@ -6,6 +6,7 @@ import com.zagirlek.finance.impl.account.remote.mergeIntoLocal
 import com.zagirlek.finance.impl.local.FinanceLocalTransactionRunner
 import com.zagirlek.finance.impl.local.account.AccountsLocalDataSource
 import com.zagirlek.finance.impl.local.transaction.TransactionsLocalDataSource
+import com.zagirlek.finance.impl.sync.retryServerFailures
 import java.time.Clock
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -20,7 +21,9 @@ internal class AccountsReadSynchronizer(
     private val refreshMutex = Mutex()
 
     suspend fun refresh() = refreshMutex.withLock {
-        val remoteAccounts = remoteDataSource.getAccounts()
+        val remoteAccounts = retryServerFailures {
+            remoteDataSource.getAccounts()
+        }
         val syncedAtMillis = clock.millis()
 
         transactionRunner.run {

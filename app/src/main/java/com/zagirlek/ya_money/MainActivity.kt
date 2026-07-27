@@ -20,7 +20,6 @@ class MainActivity : ComponentActivity() {
             accountsRepository = dependencies.accountsRepository,
             categoriesRepository = dependencies.categoriesRepository,
             transactionsRepository = dependencies.transactionsRepository,
-            transactionHistoryRepository = dependencies.transactionHistoryRepository,
             isOnline = (application as YaMoneyApplication).networkMonitor.isOnline,
             syncStatusRepository = dependencies.syncStatusRepository,
             onRetrySyncRequested = dependencies::retrySync,

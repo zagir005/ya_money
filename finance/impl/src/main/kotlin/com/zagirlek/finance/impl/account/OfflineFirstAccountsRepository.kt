@@ -8,7 +8,6 @@ import com.zagirlek.finance.api.account.UpdateAccount
 import com.zagirlek.finance.impl.local.account.AccountsLocalDataSource
 import com.zagirlek.finance.impl.FinanceSyncCoordinator
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 
 internal class OfflineFirstAccountsRepository(
     private val localDataSource: AccountsLocalDataSource,
@@ -35,18 +34,5 @@ internal class OfflineFirstAccountsRepository(
     override suspend fun updateAccount(command: UpdateAccount) {
         commandHandler.update(command)
         onSyncRequested()
-    }
-
-    @Deprecated(
-        message = "Screen components must observe Room-backed data through observeAccounts().",
-    )
-    override suspend fun getAccounts(): List<Account> {
-        val cached = observeAccounts().first()
-        return try {
-            refreshAccounts()
-            observeAccounts().first()
-        } catch (error: Exception) {
-            if (cached.isNotEmpty()) cached else throw error
-        }
     }
 }

@@ -15,9 +15,4 @@ interface AccountsRepository {
     suspend fun createAccount(command: CreateAccount): AccountId
 
     suspend fun updateAccount(command: UpdateAccount)
-
-    @Deprecated(
-        message = "Screen components must observe Room-backed data through observeAccounts().",
-    )
-    suspend fun getAccounts(): List<Account>
 }
