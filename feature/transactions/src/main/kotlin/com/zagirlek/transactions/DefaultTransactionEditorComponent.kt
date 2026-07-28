@@ -106,8 +106,6 @@ class DefaultTransactionEditorComponent(
             } catch (error: CancellationException) {
                 throw error
             } catch (_: Exception) {
-                // Room remains the source of truth. A failed background refresh
-                // must not replace an offline-capable editor with a network error.
             }
         }
     }

@@ -16,13 +16,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.zagirlek.systemdesign.theme.YaMoneyDesign
 
-/**
- * Общая оболочка модального bottom sheet финансового приложения.
- *
- * Содержимое и его состояние принадлежат вызывающему экрану или конкретному
- * sheet-компоненту. Этот composable отвечает только за единый внешний вид
- * контейнера, handle и необязательный заголовок.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BaseBottomSheet(

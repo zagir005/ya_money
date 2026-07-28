@@ -1,9 +1,5 @@
 package com.zagirlek.accounts
 
-/**
- * Проверяет, что строка содержит ровно один emoji-графем:
- * обычный emoji, флаг, keycap или составную ZWJ-последовательность.
- */
 internal fun String.isSingleEmoji(): Boolean {
     if (isEmpty()) return false
 

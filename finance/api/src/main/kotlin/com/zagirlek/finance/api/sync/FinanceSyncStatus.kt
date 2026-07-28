@@ -20,10 +20,5 @@ data class FinanceSyncStatus(
 interface FinanceSyncStatusRepository {
     fun observeStatus(): Flow<FinanceSyncStatus>
 
-    /**
-     * Returns failed operations to the queue and requests a sync pass.
-     * Unknown POST results are only reconciled with remote data and are never
-     * blindly converted back to pending creates.
-     */
     suspend fun retryFailedOperations()
 }

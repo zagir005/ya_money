@@ -2,9 +2,6 @@ package com.zagirlek.analytics.ui.summary
 
 import androidx.compose.ui.graphics.Color
 
-/**
- * Оно генерит цвета для секций диаграммы на основе ID категории
- */
 object AnalyticsCategoryColorResolver {
     private const val paletteSize = 30
     private const val goldenAngle = 137.508f

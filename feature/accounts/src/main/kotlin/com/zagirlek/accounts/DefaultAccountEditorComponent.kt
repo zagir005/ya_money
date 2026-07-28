@@ -93,7 +93,6 @@ class DefaultAccountEditorComponent(
             } catch (error: CancellationException) {
                 throw error
             } catch (_: Exception) {
-                // Existing local account data keeps the editor usable offline.
             }
         }
     }
