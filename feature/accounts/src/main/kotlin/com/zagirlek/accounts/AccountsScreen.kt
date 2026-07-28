@@ -20,7 +20,6 @@ import com.zagirlek.systemdesign.theme.YaMoneyDesign
 import com.zagirlek.systemdesign.theme.YaMoneyTheme
 import com.zagirlek.ui.components.elements.CenteredMessage
 import com.zagirlek.ui.components.elements.LoadingContent
-import com.zagirlek.ui.components.elements.NetworkErrorAlert
 import com.zagirlek.ui.components.finance.BalanceCard
 import com.zagirlek.ui.components.finance.FinanceListItem
 import com.zagirlek.ui.components.finance.FinanceScaffold
@@ -70,11 +69,7 @@ fun AccountsContent(
             }
 
             is AccountsState.Error -> AccountsStateContent(scaffoldPadding) {
-                NetworkErrorAlert(
-                    title = state.error.title,
-                    message = state.error.message.orEmpty(),
-                    onRetryClicked = { onIntent(AccountsIntent.RetryClicked) },
-                )
+                CenteredMessage(stringResource(R.string.accounts_empty))
             }
         }
     }
@@ -106,15 +101,6 @@ private fun AccountsList(
                     title = stringResource(R.string.accounts_summary_title),
                     balance = state.total,
                 )
-            }
-            if (state.refreshError != null) {
-                item {
-                    NetworkErrorAlert(
-                        title = state.refreshError.title,
-                        message = state.refreshError.message.orEmpty(),
-                        onRetryClicked = onRefresh,
-                    )
-                }
             }
             items(items = state.items, key = AccountItemUi::id) { item ->
                 FinanceListItem(

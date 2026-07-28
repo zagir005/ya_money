@@ -36,6 +36,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
 import com.zagirlek.systemdesign.theme.YaMoneyDesign
 import java.util.Currency
 import java.util.Locale
@@ -94,6 +95,10 @@ internal fun AccountAmountInput(
 ) {
     val dimensions = YaMoneyDesign.dimensions
     val focusManager = LocalFocusManager.current
+    val amountTextStyle = MaterialTheme.typography.displayLarge.copy(
+        color = MaterialTheme.colorScheme.onSurface,
+        fontSize = accountAmountFontSize(value),
+    )
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -118,8 +123,7 @@ internal fun AccountAmountInput(
                     if (filtered.length <= MaxAmountLength) onValueChange(filtered)
                 },
                 modifier = Modifier.weight(1f),
-                textStyle = MaterialTheme.typography.displayLarge.copy(
-                    color = MaterialTheme.colorScheme.onSurface,
+                textStyle = amountTextStyle.copy(
                     textAlign = TextAlign.End,
                 ),
                 keyboardOptions = KeyboardOptions(
@@ -135,7 +139,7 @@ internal fun AccountAmountInput(
             Spacer(modifier = Modifier.width(dimensions.space8))
             Text(
                 text = currencySymbol(currency),
-                style = MaterialTheme.typography.displayLarge,
+                style = amountTextStyle,
             )
         }
         HorizontalDivider(
@@ -230,5 +234,13 @@ internal fun AccountEditorRow(
 internal fun currencySymbol(code: String): String = runCatching {
     Currency.getInstance(code).getSymbol(Locale.forLanguageTag("ru-RU"))
 }.getOrDefault(code)
+
+private fun accountAmountFontSize(value: String) = when (value.length) {
+    in 0..5 -> 45.sp
+    in 6..8 -> 34.sp
+    in 9..11 -> 26.sp
+    in 12..14 -> 22.sp
+    else -> 18.sp
+}
 
 private const val MaxAmountLength = 18

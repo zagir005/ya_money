@@ -11,9 +11,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -23,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.zagirlek.finance.api.sync.FinanceSyncStatus
 import com.zagirlek.systemdesign.theme.YaMoneyDesign
 import com.zagirlek.ya_money.R
@@ -32,6 +34,7 @@ internal enum class AppStatusAlertKind {
     UnknownResult,
     Failed,
     Syncing,
+    Success,
 }
 
 internal data class AppStatusAlert(
@@ -80,18 +83,27 @@ internal fun AppStatusBanner(
         horizontalArrangement = Arrangement.spacedBy(dimensions.space12),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            imageVector = when (alert.kind) {
-                AppStatusAlertKind.Offline -> Icons.Outlined.CloudOff
-                AppStatusAlertKind.UnknownResult,
-                AppStatusAlertKind.Failed,
-                -> Icons.Outlined.ErrorOutline
-                AppStatusAlertKind.Syncing -> Icons.Outlined.Sync
-            },
-            contentDescription = null,
-            modifier = Modifier.size(dimensions.iconSize),
-            tint = colors.content,
-        )
+        if (alert.kind == AppStatusAlertKind.Syncing) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(dimensions.iconSize),
+                color = colors.content,
+                strokeWidth = 2.dp,
+            )
+        } else {
+            Icon(
+                imageVector = when (alert.kind) {
+                    AppStatusAlertKind.Offline -> Icons.Outlined.CloudOff
+                    AppStatusAlertKind.UnknownResult,
+                    AppStatusAlertKind.Failed,
+                    -> Icons.Outlined.ErrorOutline
+                    AppStatusAlertKind.Success -> Icons.Outlined.CheckCircle
+                    AppStatusAlertKind.Syncing -> error("Handled above")
+                },
+                contentDescription = null,
+                modifier = Modifier.size(dimensions.iconSize),
+                tint = colors.content,
+            )
+        }
         Text(
             text = alert.message(),
             modifier = Modifier.weight(1f),
@@ -124,14 +136,17 @@ private fun AppStatusAlert.message(): String = when (kind) {
         R.string.sync_status_pending,
         count,
     )
+    AppStatusAlertKind.Success -> stringResource(R.string.sync_status_success)
 }
 
 private val AppStatusAlert.actionLabelRes: Int?
     @StringRes get() = when (kind) {
-        AppStatusAlertKind.UnknownResult -> R.string.sync_action_check
-        AppStatusAlertKind.Failed -> R.string.sync_action_retry
+        AppStatusAlertKind.UnknownResult,
+        AppStatusAlertKind.Failed,
+        -> R.string.sync_action_ok
         AppStatusAlertKind.Offline,
         AppStatusAlertKind.Syncing,
+        AppStatusAlertKind.Success,
         -> null
     }
 
@@ -144,12 +159,16 @@ private fun AppStatusAlert.colors(): AppStatusColors = when (kind) {
     AppStatusAlertKind.UnknownResult,
     AppStatusAlertKind.Failed,
     -> AppStatusColors(
-        container = MaterialTheme.colorScheme.errorContainer,
-        content = MaterialTheme.colorScheme.onErrorContainer,
+        container = MaterialTheme.colorScheme.error,
+        content = MaterialTheme.colorScheme.onError,
     )
     AppStatusAlertKind.Syncing -> AppStatusColors(
         container = MaterialTheme.colorScheme.secondaryContainer,
         content = MaterialTheme.colorScheme.onSecondaryContainer,
+    )
+    AppStatusAlertKind.Success -> AppStatusColors(
+        container = SuccessContainer,
+        content = OnSuccessContainer,
     )
 }
 
@@ -157,3 +176,6 @@ private data class AppStatusColors(
     val container: Color,
     val content: Color,
 )
+
+private val SuccessContainer = Color(0xFF2E7D32)
+private val OnSuccessContainer = Color.White

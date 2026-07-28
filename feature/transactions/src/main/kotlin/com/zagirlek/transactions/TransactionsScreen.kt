@@ -20,7 +20,6 @@ import com.zagirlek.systemdesign.theme.YaMoneyTheme
 import com.zagirlek.transactions.R
 import com.zagirlek.ui.components.elements.CenteredMessage
 import com.zagirlek.ui.components.elements.LoadingContent
-import com.zagirlek.ui.components.elements.NetworkErrorAlert
 import com.zagirlek.ui.components.finance.BalanceCard
 import com.zagirlek.ui.components.finance.FinanceListItem
 import com.zagirlek.ui.components.finance.FinanceScaffold
@@ -76,11 +75,7 @@ fun TransactionsContent(
             }
 
             is TransactionsState.Error -> FinanceStateContent(scaffoldPadding) {
-                NetworkErrorAlert(
-                    title = state.error.title,
-                    message = state.error.message.orEmpty(),
-                    onRetryClicked = { onIntent(TransactionsIntent.RetryClicked) },
-                )
+                CenteredMessage(stringResource(type.emptyMessageRes))
             }
         }
     }
@@ -113,15 +108,6 @@ private fun TransactionsList(
                     title = summaryTitle,
                     balance = state.total,
                 )
-            }
-            if (state.refreshError != null) {
-                item {
-                    NetworkErrorAlert(
-                        title = state.refreshError.title,
-                        message = state.refreshError.message.orEmpty(),
-                        onRetryClicked = onRefresh,
-                    )
-                }
             }
             items(items = state.items, key = TransactionItemUi::id) { item ->
                 FinanceListItem(

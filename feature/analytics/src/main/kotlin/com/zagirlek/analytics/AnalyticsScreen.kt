@@ -65,7 +65,6 @@ import com.zagirlek.finance.api.transaction.TransactionType
 import com.zagirlek.systemdesign.theme.YaMoneyDesign
 import com.zagirlek.ui.components.elements.BaseBottomSheet
 import com.zagirlek.ui.components.elements.LoadingContent
-import com.zagirlek.ui.components.elements.NetworkErrorAlert
 import com.zagirlek.ui.components.elements.SelectionListItem
 import com.zagirlek.ui.components.elements.SelectionListItemControl
 import java.time.LocalDate
@@ -163,7 +162,6 @@ fun AnalyticsContent(
                     ),
                     transactionItems = emptyList(),
                     isRefreshing = false,
-                    historyError = state.error,
                     onIntent = onIntent,
                 )
                 is AnalyticsState.Empty -> AnalyticsOverview(
@@ -173,7 +171,6 @@ fun AnalyticsContent(
                     filterOptions = state.filterOptions,
                     transactionItems = emptyList(),
                     isRefreshing = state.isRefreshing,
-                    historyError = state.historyError,
                     onIntent = onIntent,
                 )
                 is AnalyticsState.Content -> AnalyticsOverview(
@@ -183,7 +180,6 @@ fun AnalyticsContent(
                     filterOptions = state.filterOptions,
                     transactionItems = state.transactionItems,
                     isRefreshing = state.isRefreshing,
-                    historyError = state.historyError,
                     onIntent = onIntent,
                 )
             }
@@ -224,7 +220,6 @@ private fun AnalyticsOverview(
     filterOptions: AnalyticsFilterOptions,
     transactionItems: List<AnalyticsTransactionItemUi>,
     isRefreshing: Boolean,
-    historyError: com.zagirlek.finance.api.error.NetworkError?,
     onIntent: (AnalyticsIntent) -> Unit,
 ) {
     val dimensions = YaMoneyDesign.dimensions
@@ -293,15 +288,6 @@ private fun AnalyticsOverview(
                 )
             }
 
-            if (historyError != null) {
-                item {
-                    NetworkErrorAlert(
-                        title = historyError.title,
-                        message = historyError.message.orEmpty(),
-                        onRetryClicked = { onIntent(AnalyticsIntent.RetryClicked) },
-                    )
-                }
-            }
             if (transactionItems.isNotEmpty()) {
                 item {
                     Text(

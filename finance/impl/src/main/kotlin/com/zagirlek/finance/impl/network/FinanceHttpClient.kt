@@ -1,5 +1,6 @@
 package com.zagirlek.finance.impl.network
 
+import android.util.Log
 import com.zagirlek.finance.api.error.FinanceNetworkException
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -13,6 +14,7 @@ import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.ContentType
@@ -96,9 +98,18 @@ class FinanceHttpClient(
     internal fun requestUrl(path: String): String = "${baseUrl.trimEnd('/')}/${path.trimStart('/')}"
 
     @PublishedApi
-    internal fun HttpResponse.throwIfUnsuccessful() {
+    internal suspend fun HttpResponse.throwIfUnsuccessful() {
         if (status.isSuccess()) return
 
+        val responseBody = runCatching { bodyAsText() }
+            .getOrElse { error -> "<failed to read response body: ${error.message}>" }
+            .ifBlank { "<empty>" }
+            .take(MaxLoggedResponseBodyLength)
+        Log.w(
+            SyncLogTag,
+            "HTTP request failed: method=${call.request.method.value}, " +
+                "url=${call.request.url}, status=${status.value}, responseBody=$responseBody",
+        )
         throw status.toFinanceDataException()
     }
 
@@ -111,6 +122,8 @@ class FinanceHttpClient(
 
     private companion object {
         const val DEFAULT_BASE_URL = "https://shmr-finance.ru/api/v1"
+        const val SyncLogTag = "YaMoneySync"
+        const val MaxLoggedResponseBodyLength = 4_000
 
         fun createClient(token: String): HttpClient = HttpClient(OkHttp) {
             expectSuccess = false
@@ -123,7 +136,7 @@ class FinanceHttpClient(
                 json(
                     Json {
                         ignoreUnknownKeys = true
-                        explicitNulls = false
+                        explicitNulls = true
                     },
                 )
             }

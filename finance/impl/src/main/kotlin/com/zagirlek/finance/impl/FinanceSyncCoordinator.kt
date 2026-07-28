@@ -3,8 +3,10 @@ package com.zagirlek.finance.impl
 import com.zagirlek.finance.api.transaction.TransactionPeriod
 import com.zagirlek.finance.impl.account.AccountsReadSynchronizer
 import com.zagirlek.finance.impl.category.CategoriesReadSynchronizer
+import com.zagirlek.finance.impl.local.PendingOperationStatus
 import com.zagirlek.finance.impl.local.sync.SyncLocalDataSource
 import com.zagirlek.finance.impl.sync.OutboxDelivery
+import com.zagirlek.finance.impl.sync.SyncDebugLog
 import com.zagirlek.finance.impl.transaction.TransactionsReadSynchronizer
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -20,6 +22,13 @@ class FinanceSyncCoordinator internal constructor(
 
     suspend fun sync(period: TransactionPeriod? = null): FinanceSyncResult =
         syncMutex.withLock {
+            val pendingCount = syncLocalDataSource.operations(PendingOperationStatus.Pending).size
+            val failedCount = syncLocalDataSource.operations(PendingOperationStatus.Failed).size
+            val unknownCount = syncLocalDataSource.operations(PendingOperationStatus.UnknownResult).size
+            SyncDebugLog.debug(
+                "Sync started: requestedPeriod=$period, pending=$pendingCount, " +
+                    "failed=$failedCount, unknown=$unknownCount",
+            )
             outboxDelivery.reconcileUnknownResults()
             val deliveryResult = outboxDelivery.deliver()
             outboxDelivery.reconcileUnknownResults()
@@ -35,6 +44,9 @@ class FinanceSyncCoordinator internal constructor(
                 transactionsSynchronizer.refresh(registeredPeriod)
             }
 
+            SyncDebugLog.debug(
+                "Sync finished: refreshedPeriods=${periods.size}, needsRetry=${deliveryResult.needsRetry}",
+            )
             FinanceSyncResult(needsRetry = deliveryResult.needsRetry)
         }
 }

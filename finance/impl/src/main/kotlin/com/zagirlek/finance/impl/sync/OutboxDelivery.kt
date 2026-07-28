@@ -24,6 +24,8 @@ import com.zagirlek.finance.impl.transaction.revertTransactionImpact
 import com.zagirlek.finance.impl.transaction.remote.TransactionRequestDto
 import com.zagirlek.finance.impl.transaction.remote.TransactionWriteResult
 import com.zagirlek.finance.impl.transaction.remote.TransactionsRemoteDataSource
+import com.zagirlek.finance.impl.transaction.remote.toTransactionRequestAmount
+import com.zagirlek.finance.impl.transaction.remote.toTransactionRequestDate
 import java.math.BigDecimal
 import java.net.ConnectException
 import java.net.NoRouteToHostException
@@ -57,20 +59,28 @@ internal class OutboxDelivery(
     suspend fun deliver(): OutboxDeliveryResult {
         var needsRetry = false
 
-        syncLocalDataSource.readyOperations(clock.instant())
+        val accountOperations = syncLocalDataSource.readyOperations(clock.instant())
             .filter { operation -> operation.entityType == PendingEntityType.Account }
-            .forEach { operation ->
-                needsRetry = deliverWithPolicy(operation, ::sendAccount) || needsRetry
-            }
-
-        syncLocalDataSource.readyOperations(clock.instant())
+        val transactionOperations = syncLocalDataSource.readyOperations(clock.instant())
             .filter { operation -> operation.entityType == PendingEntityType.Transaction }
-            .forEach { operation ->
-                val dependency = operation.dependsOnOperationId
-                    ?.let { operationId -> syncLocalDataSource.operation(operationId) }
-                if (dependency == null) {
-                    needsRetry = deliverWithPolicy(operation, ::sendTransaction) || needsRetry
-                }
+        SyncDebugLog.debug(
+            "Outbox delivery: accounts=${accountOperations.size}, transactions=${transactionOperations.size}",
+        )
+
+        accountOperations.forEach { operation ->
+            needsRetry = deliverWithPolicy(operation, ::sendAccount) || needsRetry
+        }
+
+        transactionOperations.forEach { operation ->
+            val dependency = operation.dependsOnOperationId
+                ?.let { operationId -> syncLocalDataSource.operation(operationId) }
+            if (dependency == null) {
+                needsRetry = deliverWithPolicy(operation, ::sendTransaction) || needsRetry
+            } else {
+                SyncDebugLog.debug(
+                    "Outbox operation ${operation.id} is waiting for dependency ${dependency.id}",
+                )
+            }
             }
 
         return OutboxDeliveryResult(needsRetry = needsRetry)
@@ -97,7 +107,12 @@ internal class OutboxDelivery(
                     isCloseToLocalCreation(remote.createdAt, payload.createdAtMillis)
             }
             if (matches.size == 1) {
+                SyncDebugLog.debug("Unknown account operation ${operation.id} reconciled")
                 completeAccount(operation, matches.single())
+            } else {
+                SyncDebugLog.debug(
+                    "Unknown account operation ${operation.id} has ${matches.size} remote matches",
+                )
             }
         }
     }
@@ -110,8 +125,18 @@ internal class OutboxDelivery(
             val payload = json.decodeFromString<PendingTransactionPayload>(operation.payloadJson)
             val account = accountsLocalDataSource.getEntity(
                 com.zagirlek.finance.api.account.AccountId(payload.accountClientId),
-            ) ?: return@forEach
-            val accountRemoteId = account.remoteId ?: return@forEach
+            ) ?: run {
+                SyncDebugLog.warning(
+                    "Unknown transaction operation ${operation.id} cannot be reconciled: account is missing",
+                )
+                return@forEach
+            }
+            val accountRemoteId = account.remoteId ?: run {
+                SyncDebugLog.debug(
+                    "Unknown transaction operation ${operation.id} is waiting for account remote ID",
+                )
+                return@forEach
+            }
             val transactionDate = Instant.ofEpochMilli(payload.transactionDateMillis)
             val localDate = transactionDate.atZone(ZoneId.systemDefault()).toLocalDate()
             val remoteTransactions = retryServerFailures(retryDelay = retryDelay) {
@@ -132,6 +157,7 @@ internal class OutboxDelivery(
             }
             if (matches.size == 1) {
                 val match = matches.single()
+                SyncDebugLog.debug("Unknown transaction operation ${operation.id} reconciled")
                 completeTransaction(
                     sentOperation = operation,
                     sentPayload = payload,
@@ -140,6 +166,10 @@ internal class OutboxDelivery(
                         createdAt = match.createdAt,
                         updatedAt = match.updatedAt,
                     ),
+                )
+            } else {
+                SyncDebugLog.debug(
+                    "Unknown transaction operation ${operation.id} has ${matches.size} remote matches",
                 )
             }
         }
@@ -153,20 +183,29 @@ internal class OutboxDelivery(
 
         while (true) {
             try {
+                SyncDebugLog.debug(
+                    "Sending outbox operation id=${operation.id}, type=${operation.operationType}, " +
+                        "entity=${operation.entityType}, attempt=${operation.attemptCount + 1}",
+                )
                 sender(operation)
+                SyncDebugLog.debug("Outbox operation ${operation.id} delivered")
                 return false
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
                 if (!isStillCurrent(operation)) return true
 
-                when (
-                    val action = classifySyncFailure(
-                        operationType = operation.operationType,
-                        completedAttempts = operation.attemptCount,
-                        error = error,
-                    )
-                ) {
+                val action = classifySyncFailure(
+                    operationType = operation.operationType,
+                    completedAttempts = operation.attemptCount,
+                    error = error,
+                )
+                SyncDebugLog.warning(
+                    "Outbox operation ${operation.id} failed with " +
+                        "${error.javaClass.simpleName}; action=$action",
+                    error,
+                )
+                when (action) {
                     is SyncFailureAction.RetryServerFailure -> {
                         markFailure(
                             operation = operation,
@@ -248,6 +287,7 @@ internal class OutboxDelivery(
                 request = request,
             )
         }
+        SyncDebugLog.debug("Account request succeeded for operation ${operation.id}")
         completeAccount(operation, response)
     }
 
@@ -288,9 +328,14 @@ internal class OutboxDelivery(
         val request = TransactionRequestDto(
             accountId = remoteAccountId,
             categoryId = payload.categoryId,
-            amount = payload.amount,
-            transactionDate = Instant.ofEpochMilli(payload.transactionDateMillis).toString(),
+            amount = payload.amount.toTransactionRequestAmount(),
+            transactionDate = Instant.ofEpochMilli(payload.transactionDateMillis)
+                .toTransactionRequestDate(),
             comment = payload.comment,
+        )
+        SyncDebugLog.debug(
+            "Transaction request prepared: operation=${operation.id}, " +
+                "payload=${json.encodeToString(request)}",
         )
         val response = when (operation.operationType) {
             PendingOperationType.Create -> {
@@ -315,6 +360,7 @@ internal class OutboxDelivery(
                 request = request,
             )
         }
+        SyncDebugLog.debug("Transaction request succeeded for operation ${operation.id}")
         completeTransaction(operation, payload, response)
     }
 
@@ -349,6 +395,7 @@ internal class OutboxDelivery(
                     },
                 )
                 syncLocalDataSource.remove(currentOperation.id)
+                SyncDebugLog.debug("Outbox account operation ${currentOperation.id} removed")
             } else {
                 val currentPayload =
                     json.decodeFromString<PendingAccountPayload>(currentOperation.payloadJson)
@@ -409,6 +456,7 @@ internal class OutboxDelivery(
                     ),
                 )
                 syncLocalDataSource.remove(currentOperation.id)
+                SyncDebugLog.debug("Outbox transaction operation ${currentOperation.id} removed")
             } else {
                 val currentPayload =
                     json.decodeFromString<PendingTransactionPayload>(currentOperation.payloadJson)
@@ -551,8 +599,17 @@ internal fun classifySyncFailure(
             SyncFailureAction.RetryLater(NetworkRetryDelayMillis)
         }
     }
+    is FinanceNetworkException.ClientFailure -> {
+        if (
+            operationType == PendingOperationType.Create &&
+            error.statusCode == ConflictStatusCode
+        ) {
+            SyncFailureAction.MarkUnknownResult
+        } else {
+            SyncFailureAction.MarkFailed
+        }
+    }
     is FinanceNetworkException.Unauthorized,
-    is FinanceNetworkException.ClientFailure,
     is FinanceNetworkException.UnexpectedResponse,
     -> SyncFailureAction.MarkFailed
     else -> SyncFailureAction.MarkFailed
@@ -605,3 +662,4 @@ private fun AccountDto.toSyncedEntity(
 
 private const val NetworkRetryDelayMillis = 10_000L
 private const val UnknownResultMatchWindowMillis = 5 * 60 * 1_000L
+private const val ConflictStatusCode = 409

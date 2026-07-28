@@ -1,6 +1,7 @@
 package com.zagirlek.ya_money.sync
 
 import android.content.Context
+import android.util.Log
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -33,6 +34,7 @@ class FinanceWorkScheduler(
             ExistingWorkPolicy.APPEND_OR_REPLACE,
             request,
         )
+        Log.d(SyncLogTag, "Immediate sync work enqueued: id=${request.id}")
     }
 
     fun schedulePeriodic() {
@@ -47,9 +49,11 @@ class FinanceWorkScheduler(
             ExistingPeriodicWorkPolicy.KEEP,
             request,
         )
+        Log.d(SyncLogTag, "Periodic sync work scheduled: id=${request.id}")
     }
 
     private companion object {
+        const val SyncLogTag = "YaMoneySync"
         const val ImmediateWorkName = "finance-immediate-sync"
         const val PeriodicWorkName = "finance-periodic-sync"
         const val PeriodicIntervalHours = 2L

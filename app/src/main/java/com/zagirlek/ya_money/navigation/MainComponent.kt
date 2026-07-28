@@ -73,7 +73,9 @@ class DefaultMainComponent(
     )
 
     override fun select(tab: MainTab) {
-        navigation.select(tab.ordinal)
+        if (childPages.value.selectedIndex != tab.ordinal) {
+            navigation.select(tab.ordinal)
+        }
     }
 
     override fun openAnalytics() {

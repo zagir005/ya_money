@@ -1,6 +1,7 @@
 package com.zagirlek.ya_money.navigation
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,7 +24,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
-import com.arkivanov.decompose.extensions.compose.pages.ChildPages
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.zagirlek.systemdesign.theme.YaMoneyDesign
 import com.zagirlek.ya_money.R
@@ -45,24 +45,38 @@ fun MainScreen(component: MainComponent) {
             )
         },
     ) { contentPadding ->
-        ChildPages(
-            pages = component.childPages,
-            onPageSelected = { index -> component.select(MainTab.entries[index]) },
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(contentPadding),
-        ) { _, child ->
-            when (child) {
-                is MainComponent.Child.Transactions -> TransactionsScreen(
-                    type = child.type,
-                    component = child.component,
-                    onAnalyticsClick = component::openAnalytics,
-                )
-                is MainComponent.Child.Accounts -> AccountsScreen(
-                    component = child.component,
-                    onAnalyticsClick = component::openAnalytics,
+        pages.items
+            .getOrNull(pages.selectedIndex)
+            ?.instance
+            ?.let { child ->
+                MainPage(
+                    child = child,
+                    component = component,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(contentPadding),
                 )
             }
+    }
+}
+
+@Composable
+private fun MainPage(
+    child: MainComponent.Child,
+    component: MainComponent,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier) {
+        when (child) {
+            is MainComponent.Child.Transactions -> TransactionsScreen(
+                type = child.type,
+                component = child.component,
+                onAnalyticsClick = component::openAnalytics,
+            )
+            is MainComponent.Child.Accounts -> AccountsScreen(
+                component = child.component,
+                onAnalyticsClick = component::openAnalytics,
+            )
         }
     }
 }
